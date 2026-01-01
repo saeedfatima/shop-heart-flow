@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleAuthButton } from './GoogleAuthButton';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface LoginFormProps {
   onForgotPassword: () => void;
@@ -18,19 +20,34 @@ export function LoginForm({ onForgotPassword, onSwitchToSignUp }: LoginFormProps
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    const result = await login(email, password);
+    setIsLoading(false);
+    
+    if (result.success) {
       toast({
-        title: "Coming Soon",
-        description: "Login functionality will be available once backend is configured.",
+        title: "Welcome back!",
+        description: result.message,
       });
-    }, 1000);
+      // Redirect based on user role (admin goes to /admin, user goes to /dashboard)
+      const storedUser = localStorage.getItem('mockAuthUser');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+      }
+    } else {
+      toast({
+        title: "Login failed",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -41,6 +58,13 @@ export function LoginForm({ onForgotPassword, onSwitchToSignUp }: LoginFormProps
       transition={{ duration: 0.3 }}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Demo credentials hint */}
+        <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm">
+          <p className="font-medium text-foreground mb-1">Demo Credentials:</p>
+          <p className="text-muted-foreground">Admin: admin@example.com / password123</p>
+          <p className="text-muted-foreground">User: user@example.com / password123</p>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <div className="relative">

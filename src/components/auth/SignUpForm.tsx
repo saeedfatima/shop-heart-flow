@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleAuthButton } from './GoogleAuthButton';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface SignUpFormProps {
   onSwitchToLogin: () => void;
@@ -20,6 +22,8 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,16 +37,33 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
       return;
     }
 
+    if (password.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    const result = await signup({ firstName, lastName, email, password });
+    setIsLoading(false);
+    
+    if (result.success) {
       toast({
-        title: "Coming Soon",
-        description: "Sign up functionality will be available once backend is configured.",
+        title: "Account created!",
+        description: result.message,
       });
-    }, 1000);
+      navigate('/dashboard');
+    } else {
+      toast({
+        title: "Sign up failed",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -65,6 +86,7 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 className="pl-10"
+                required
               />
             </div>
           </div>
@@ -76,6 +98,7 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
               placeholder="Doe"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
+              required
             />
           </div>
         </div>
