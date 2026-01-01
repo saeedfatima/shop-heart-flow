@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
+import { Link, Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserSidebar } from "@/components/dashboard/UserSidebar";
+import { useAuth } from "@/context/AuthContext";
 import { 
   Package, 
   MapPin, 
@@ -16,16 +17,7 @@ import {
   CreditCard
 } from "lucide-react";
 
-// Mock user data
-const mockUser = {
-  firstName: "John",
-  lastName: "Doe",
-  email: "john.doe@example.com",
-  phone: "+1 (555) 123-4567",
-  avatar: "",
-  memberSince: "June 2023",
-};
-
+// Mock data
 const mockRecentOrders = [
   { 
     id: "ORD-2024-001", 
@@ -82,18 +74,41 @@ const mockWishlist = [
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "delivered": return "bg-green-100 text-green-800";
-    case "shipped": return "bg-blue-100 text-blue-800";
-    case "processing": return "bg-yellow-100 text-yellow-800";
-    default: return "bg-gray-100 text-gray-800";
+    case "delivered": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    case "shipped": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+    case "processing": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+    default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
   }
 };
 
 const UserDashboard = () => {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Redirect admin to admin dashboard
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
   return (
-    <Layout>
-      <div className="min-h-screen bg-secondary/30 py-8">
-        <div className="container mx-auto px-4">
+    <div className="flex h-screen bg-background">
+      <UserSidebar />
+      
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-6 lg:p-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -103,24 +118,24 @@ const UserDashboard = () => {
             <div className="mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={mockUser.avatar} />
+                  <AvatarImage src={user?.avatar} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                    {mockUser.firstName[0]}{mockUser.lastName[0]}
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h1 className="text-3xl font-bold text-foreground">
-                    Welcome back, {mockUser.firstName}!
+                    Welcome back, {user?.firstName}!
                   </h1>
-                  <p className="text-muted-foreground">Member since {mockUser.memberSince}</p>
+                  <p className="text-muted-foreground">Member since {user?.createdAt}</p>
                 </div>
               </div>
             </div>
 
             {/* Quick Actions */}
             <div className="grid gap-4 md:grid-cols-4 mb-8">
-              <Link to="/orders">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <Link to="/dashboard/orders">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="p-3 bg-primary/10 rounded-full">
                       <Package className="h-6 w-6 text-primary" />
@@ -133,8 +148,8 @@ const UserDashboard = () => {
                 </Card>
               </Link>
               
-              <Link to="/account">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <Link to="/dashboard/profile">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="p-3 bg-primary/10 rounded-full">
                       <Settings className="h-6 w-6 text-primary" />
@@ -147,20 +162,22 @@ const UserDashboard = () => {
                 </Card>
               </Link>
               
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="p-3 bg-primary/10 rounded-full">
-                    <Heart className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Wishlist</p>
-                    <p className="text-sm text-muted-foreground">{mockWishlist.length} items</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <Link to="/dashboard/wishlist">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className="p-3 bg-primary/10 rounded-full">
+                      <Heart className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Wishlist</p>
+                      <p className="text-sm text-muted-foreground">{mockWishlist.length} items</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
               
               <Link to="/shop">
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                   <CardContent className="flex items-center gap-4 p-4">
                     <div className="p-3 bg-primary/10 rounded-full">
                       <ShoppingBag className="h-6 w-6 text-primary" />
@@ -183,7 +200,7 @@ const UserDashboard = () => {
                       <CardTitle>Recent Orders</CardTitle>
                       <CardDescription>Your latest purchases</CardDescription>
                     </div>
-                    <Link to="/orders">
+                    <Link to="/dashboard/orders">
                       <Button variant="ghost" size="sm">
                         View All <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
@@ -235,7 +252,7 @@ const UserDashboard = () => {
                     <div>
                       <CardTitle className="text-lg">Saved Addresses</CardTitle>
                     </div>
-                    <Link to="/account">
+                    <Link to="/dashboard/addresses">
                       <Button variant="ghost" size="sm">
                         Manage
                       </Button>
@@ -268,9 +285,11 @@ const UserDashboard = () => {
                     <div>
                       <CardTitle className="text-lg">Wishlist</CardTitle>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      View All
-                    </Button>
+                    <Link to="/dashboard/wishlist">
+                      <Button variant="ghost" size="sm">
+                        View All
+                      </Button>
+                    </Link>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
@@ -317,7 +336,7 @@ const UserDashboard = () => {
                         <p className="text-xs text-muted-foreground">24 orders placed</p>
                       </div>
                     </div>
-                    <Link to="/account">
+                    <Link to="/dashboard/profile">
                       <Button variant="outline" className="w-full mt-2">
                         <Settings className="h-4 w-4 mr-2" />
                         Manage Account
@@ -329,8 +348,8 @@ const UserDashboard = () => {
             </div>
           </motion.div>
         </div>
-      </div>
-    </Layout>
+      </main>
+    </div>
   );
 };
 

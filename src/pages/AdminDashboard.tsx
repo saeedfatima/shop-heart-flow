@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Layout } from "@/components/layout/Layout";
+import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
+import { useAuth } from "@/context/AuthContext";
 import { 
   Package, 
   ShoppingCart, 
   Users, 
   DollarSign, 
-  TrendingUp,
   Search,
   Eye,
   Edit,
@@ -59,14 +60,14 @@ const mockCustomers = [
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "delivered": return "bg-green-100 text-green-800";
-    case "shipped": return "bg-blue-100 text-blue-800";
-    case "processing": return "bg-yellow-100 text-yellow-800";
-    case "pending": return "bg-gray-100 text-gray-800";
-    case "active": return "bg-green-100 text-green-800";
-    case "out_of_stock": return "bg-red-100 text-red-800";
-    case "low_stock": return "bg-orange-100 text-orange-800";
-    default: return "bg-gray-100 text-gray-800";
+    case "delivered": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    case "shipped": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+    case "processing": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+    case "pending": return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
+    case "active": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    case "out_of_stock": return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    case "low_stock": return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
+    default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
   }
 };
 
@@ -94,11 +95,28 @@ const StatCard = ({ title, value, change, icon: Icon, prefix = "" }: {
 
 const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated or not admin
+  if (!isAuthenticated || user?.role !== 'admin') {
+    return <Navigate to="/auth" replace />;
+  }
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-secondary/30 py-8">
-        <div className="container mx-auto px-4">
+    <div className="flex h-screen bg-background">
+      <AdminSidebar />
+      
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-6 lg:p-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -106,8 +124,8 @@ const AdminDashboard = () => {
           >
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-muted-foreground">Welcome back! Here's what's happening with your store.</p>
+              <h1 className="text-3xl font-bold text-foreground">Dashboard Overview</h1>
+              <p className="text-muted-foreground">Welcome back, {user?.firstName}! Here's what's happening with your store.</p>
             </div>
 
             {/* Stats Grid */}
@@ -307,8 +325,8 @@ const AdminDashboard = () => {
             </Tabs>
           </motion.div>
         </div>
-      </div>
-    </Layout>
+      </main>
+    </div>
   );
 };
 
