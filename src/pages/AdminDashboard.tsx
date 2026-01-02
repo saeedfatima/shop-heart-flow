@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Navigate } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,14 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from "lucide-react";
+
+// Import sub-pages
+import AdminOrders from "@/pages/admin/AdminOrders";
+import AdminProducts from "@/pages/admin/AdminProducts";
+import AdminCustomers from "@/pages/admin/AdminCustomers";
+import AdminCategories from "@/pages/admin/AdminCategories";
+import AdminAnalytics from "@/pages/admin/AdminAnalytics";
+import AdminSettings from "@/pages/admin/AdminSettings";
 
 // Mock data
 const mockStats = {
@@ -93,11 +101,163 @@ const StatCard = ({ title, value, change, icon: Icon, prefix = "" }: {
   </Card>
 );
 
-const AdminDashboard = () => {
+const DashboardOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">Dashboard Overview</h1>
+        <p className="text-muted-foreground">Welcome back, {user?.firstName}! Here's what's happening with your store.</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <StatCard title="Total Revenue" value={mockStats.totalRevenue.toFixed(2)} change={mockStats.revenueChange} icon={DollarSign} prefix="$" />
+        <StatCard title="Total Orders" value={mockStats.totalOrders} change={mockStats.ordersChange} icon={ShoppingCart} />
+        <StatCard title="Products" value={mockStats.totalProducts} change={mockStats.productsChange} icon={Package} />
+        <StatCard title="Customers" value={mockStats.totalCustomers} change={mockStats.customersChange} icon={Users} />
+      </div>
+
+      <Tabs defaultValue="orders" className="space-y-4">
+        <TabsList className="bg-card">
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="customers">Customers</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle>Recent Orders</CardTitle>
+                  <CardDescription>Manage and track customer orders</CardDescription>
+                </div>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search orders..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden sm:table-cell">Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockRecentOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">{order.id}</TableCell>
+                      <TableCell>{order.customer}</TableCell>
+                      <TableCell className="hidden md:table-cell">{order.email}</TableCell>
+                      <TableCell>${order.total.toFixed(2)}</TableCell>
+                      <TableCell><Badge className={getStatusColor(order.status)}>{order.status}</Badge></TableCell>
+                      <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
+                      <TableCell className="text-right"><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="products">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div><CardTitle>Products</CardTitle><CardDescription>Manage your product inventory</CardDescription></div>
+                <Button className="w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Product</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden md:table-cell">Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead className="hidden sm:table-cell">Stock</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium">{product.id}</TableCell>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell className="hidden md:table-cell">{product.category}</TableCell>
+                      <TableCell>${product.price.toFixed(2)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
+                      <TableCell><Badge className={getStatusColor(product.status)}>{product.status.replace('_', ' ')}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="customers">
+          <Card>
+            <CardHeader><CardTitle>Customers</CardTitle><CardDescription>View and manage customer accounts</CardDescription></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead>Orders</TableHead>
+                    <TableHead className="hidden sm:table-cell">Total Spent</TableHead>
+                    <TableHead className="hidden lg:table-cell">Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockCustomers.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium">{customer.id}</TableCell>
+                      <TableCell>{customer.name}</TableCell>
+                      <TableCell className="hidden md:table-cell">{customer.email}</TableCell>
+                      <TableCell>{customer.orders}</TableCell>
+                      <TableCell className="hidden sm:table-cell">${customer.spent.toFixed(2)}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{customer.joined}</TableCell>
+                      <TableCell className="text-right"><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </motion.div>
+  );
+};
+
+const AdminDashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
-  // Show loading state
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -106,7 +266,6 @@ const AdminDashboard = () => {
     );
   }
 
-  // Redirect if not authenticated or not admin
   if (!isAuthenticated || user?.role !== 'admin') {
     return <Navigate to="/auth" replace />;
   }
@@ -117,213 +276,16 @@ const AdminDashboard = () => {
       
       <main className="flex-1 overflow-y-auto">
         <div className="p-6 lg:p-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground">Dashboard Overview</h1>
-              <p className="text-muted-foreground">Welcome back, {user?.firstName}! Here's what's happening with your store.</p>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-              <StatCard 
-                title="Total Revenue" 
-                value={mockStats.totalRevenue.toFixed(2)} 
-                change={mockStats.revenueChange}
-                icon={DollarSign}
-                prefix="$"
-              />
-              <StatCard 
-                title="Total Orders" 
-                value={mockStats.totalOrders} 
-                change={mockStats.ordersChange}
-                icon={ShoppingCart}
-              />
-              <StatCard 
-                title="Products" 
-                value={mockStats.totalProducts} 
-                change={mockStats.productsChange}
-                icon={Package}
-              />
-              <StatCard 
-                title="Customers" 
-                value={mockStats.totalCustomers} 
-                change={mockStats.customersChange}
-                icon={Users}
-              />
-            </div>
-
-            {/* Tabs for different sections */}
-            <Tabs defaultValue="orders" className="space-y-4">
-              <TabsList className="bg-card">
-                <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="products">Products</TabsTrigger>
-                <TabsTrigger value="customers">Customers</TabsTrigger>
-              </TabsList>
-
-              {/* Orders Tab */}
-              <TabsContent value="orders">
-                <Card>
-                  <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <CardTitle>Recent Orders</CardTitle>
-                        <CardDescription>Manage and track customer orders</CardDescription>
-                      </div>
-                      <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          placeholder="Search orders..." 
-                          className="pl-9"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Order ID</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead className="hidden md:table-cell">Email</TableHead>
-                          <TableHead>Total</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="hidden sm:table-cell">Date</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {mockRecentOrders.map((order) => (
-                          <TableRow key={order.id}>
-                            <TableCell className="font-medium">{order.id}</TableCell>
-                            <TableCell>{order.customer}</TableCell>
-                            <TableCell className="hidden md:table-cell">{order.email}</TableCell>
-                            <TableCell>${order.total.toFixed(2)}</TableCell>
-                            <TableCell>
-                              <Badge className={getStatusColor(order.status)}>
-                                {order.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Products Tab */}
-              <TabsContent value="products">
-                <Card>
-                  <CardHeader>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <CardTitle>Products</CardTitle>
-                        <CardDescription>Manage your product inventory</CardDescription>
-                      </div>
-                      <Button className="w-full sm:w-auto">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Product
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Product ID</TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead className="hidden md:table-cell">Category</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead className="hidden sm:table-cell">Stock</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {mockProducts.map((product) => (
-                          <TableRow key={product.id}>
-                            <TableCell className="font-medium">{product.id}</TableCell>
-                            <TableCell>{product.name}</TableCell>
-                            <TableCell className="hidden md:table-cell">{product.category}</TableCell>
-                            <TableCell>${product.price.toFixed(2)}</TableCell>
-                            <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
-                            <TableCell>
-                              <Badge className={getStatusColor(product.status)}>
-                                {product.status.replace('_', ' ')}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Customers Tab */}
-              <TabsContent value="customers">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Customers</CardTitle>
-                    <CardDescription>View and manage customer accounts</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Customer ID</TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead className="hidden md:table-cell">Email</TableHead>
-                          <TableHead>Orders</TableHead>
-                          <TableHead className="hidden sm:table-cell">Total Spent</TableHead>
-                          <TableHead className="hidden lg:table-cell">Joined</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {mockCustomers.map((customer) => (
-                          <TableRow key={customer.id}>
-                            <TableCell className="font-medium">{customer.id}</TableCell>
-                            <TableCell>{customer.name}</TableCell>
-                            <TableCell className="hidden md:table-cell">{customer.email}</TableCell>
-                            <TableCell>{customer.orders}</TableCell>
-                            <TableCell className="hidden sm:table-cell">${customer.spent.toFixed(2)}</TableCell>
-                            <TableCell className="hidden lg:table-cell">{customer.joined}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </motion.div>
+          <Routes>
+            <Route index element={<DashboardOverview />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="customers" element={<AdminCustomers />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="*" element={<DashboardOverview />} />
+          </Routes>
         </div>
       </main>
     </div>
