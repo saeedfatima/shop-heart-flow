@@ -1,13 +1,14 @@
 // Product detail page with image gallery and variant selection
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ChevronLeft, Minus, Plus, Check, Star } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { getProductById } from '@/data/products';
 import { ProductColor, ProductSize } from '@/types/product';
+import { ProductReviews } from '@/components/products/ProductReviews';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -227,6 +228,9 @@ const ProductDetail = () => {
             )}
           </div>
         </div>
+
+        {/* Reviews Section */}
+        <ProductReviews productId={product.id} />
       </div>
     </Layout>
   );
