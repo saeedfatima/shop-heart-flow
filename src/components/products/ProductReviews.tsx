@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, ThumbsUp, User, MessageSquare } from 'lucide-react';
+import { Star, ThumbsUp, User, MessageSquare, Filter, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { z } from 'zod';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest' | 'helpful';
+type FilterOption = 'all' | '5' | '4' | '3' | '2' | '1';
 
 interface Review {
   id: string;
@@ -96,6 +106,39 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [helpfulClicked, setHelpfulClicked] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [filterBy, setFilterBy] = useState<FilterOption>('all');
+
+  // Filtered and sorted reviews
+  const filteredAndSortedReviews = useMemo(() => {
+    let result = [...reviews];
+    
+    // Apply filter
+    if (filterBy !== 'all') {
+      result = result.filter(r => r.rating === parseInt(filterBy));
+    }
+    
+    // Apply sort
+    switch (sortBy) {
+      case 'newest':
+        result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        break;
+      case 'highest':
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'lowest':
+        result.sort((a, b) => a.rating - b.rating);
+        break;
+      case 'helpful':
+        result.sort((a, b) => b.helpful - a.helpful);
+        break;
+    }
+    
+    return result;
+  }, [reviews, sortBy, filterBy]);
 
   const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
@@ -309,9 +352,63 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
         )}
       </AnimatePresence>
 
+      {/* Sorting and Filtering Controls */}
+      {reviews.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2 flex-1">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+            <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="highest">Highest Rated</SelectItem>
+                <SelectItem value="lowest">Lowest Rated</SelectItem>
+                <SelectItem value="helpful">Most Helpful</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-2 flex-1">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filterBy} onValueChange={(value: FilterOption) => setFilterBy(value)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by rating" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Ratings</SelectItem>
+                <SelectItem value="5">5 Stars Only</SelectItem>
+                <SelectItem value="4">4 Stars Only</SelectItem>
+                <SelectItem value="3">3 Stars Only</SelectItem>
+                <SelectItem value="2">2 Stars Only</SelectItem>
+                <SelectItem value="1">1 Star Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {filterBy !== 'all' && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setFilterBy('all')}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Clear Filter
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Reviews List */}
       <div className="space-y-6">
-        {reviews.map((review, index) => (
+        {filteredAndSortedReviews.length === 0 && reviews.length > 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No reviews match your filter. Try selecting a different rating.
+          </div>
+        )}
+        {filteredAndSortedReviews.map((review, index) => (
           <motion.div
             key={review.id}
             initial={{ opacity: 0, y: 20 }}
