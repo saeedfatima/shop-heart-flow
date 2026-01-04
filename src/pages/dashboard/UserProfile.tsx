@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,36 +6,144 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Camera, Mail, Phone, User, Lock, Shield } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Camera, Mail, Phone, User, Lock, Shield, Upload, X, Loader2, MapPin, Calendar, Briefcase } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const UserProfile = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     email: user?.email || "",
-    phone: "+1 (555) 123-4567",
+    phone: user?.phone || "+1 (555) 123-4567",
+    bio: "",
+    location: "New York, USA",
+    occupation: "Software Developer",
+    website: "",
+    dateOfBirth: "1990-01-15",
   });
 
-  const handleSave = () => {
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file (JPG, PNG, GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string);
+      setIsUploading(false);
+      toast({
+        title: "Photo uploaded",
+        description: "Your new profile photo has been set.",
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    toast({
+      title: "Photo removed",
+      description: "Your profile photo has been removed.",
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
     updateProfile({
       firstName: formData.firstName,
       lastName: formData.lastName,
+      phone: formData.phone,
+      avatar: avatarPreview || undefined,
     });
+    
+    setIsSaving(false);
     toast({
       title: "Profile updated",
       description: "Your profile has been updated successfully.",
     });
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "New password and confirmation must match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    setShowPasswordDialog(false);
+    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    
     toast({
-      title: "Password change email sent",
-      description: "Check your email for instructions to reset your password.",
+      title: "Password changed",
+      description: "Your password has been updated successfully.",
     });
   };
 
@@ -48,7 +156,7 @@ const UserProfile = () => {
     >
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
-        <p className="text-muted-foreground">Manage your account information</p>
+        <p className="text-muted-foreground">Manage your account information and preferences</p>
       </div>
 
       <div className="space-y-6">
@@ -56,28 +164,63 @@ const UserProfile = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Profile Picture</CardTitle>
-            <CardDescription>Update your profile photo</CardDescription>
+            <CardDescription>Update your profile photo - this will be visible to others</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="relative group">
+                <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
+                  <AvatarImage src={avatarPreview || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
                     {user?.firstName?.[0]}{user?.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                )}
                 <Button 
                   size="icon" 
                   variant="secondary"
-                  className="absolute bottom-0 right-0 rounded-full h-8 w-8"
+                  className="absolute bottom-0 right-0 rounded-full h-9 w-9 shadow-md"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
               </div>
-              <div>
-                <Button variant="outline" size="sm">Upload New Photo</Button>
-                <p className="text-xs text-muted-foreground mt-2">
+              <div className="flex flex-col items-center sm:items-start gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload New Photo
+                  </Button>
+                  {avatarPreview && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={handleRemoveAvatar}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
                   JPG, GIF or PNG. Max size 2MB.
                 </p>
               </div>
@@ -102,6 +245,7 @@ const UserProfile = () => {
                   id="firstName" 
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder="Enter your first name"
                 />
               </div>
               <div className="space-y-2">
@@ -110,33 +254,106 @@ const UserProfile = () => {
                   id="lastName" 
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  placeholder="Enter your last name"
                 />
               </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email Address
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                placeholder="Tell us a little about yourself..."
+                rows={3}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground text-right">{formData.bio.length}/500</p>
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email Address
+                </Label>
+                <Input 
+                  id="email" 
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="your@email.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Phone Number
+                </Label>
+                <Input 
+                  id="phone" 
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+1 (555) 000-0000"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Location
+                </Label>
+                <Input 
+                  id="location" 
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="City, Country"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="occupation" className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Occupation
+                </Label>
+                <Input 
+                  id="occupation" 
+                  value={formData.occupation}
+                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                  placeholder="Your job title"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Date of Birth
               </Label>
               <Input 
-                id="email" 
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                id="dateOfBirth" 
+                type="date"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Phone Number
-              </Label>
-              <Input 
-                id="phone" 
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
+
+            <div className="flex justify-end pt-4">
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
             </div>
-            <Button onClick={handleSave}>Save Changes</Button>
           </CardContent>
         </Card>
 
@@ -158,7 +375,9 @@ const UserProfile = () => {
                   <p className="text-sm text-muted-foreground">Last changed 30 days ago</p>
                 </div>
               </div>
-              <Button variant="outline" onClick={handlePasswordChange}>Change Password</Button>
+              <Button variant="outline" onClick={() => setShowPasswordDialog(true)}>
+                Change Password
+              </Button>
             </div>
             
             <Separator />
@@ -190,6 +409,58 @@ const UserProfile = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Password Change Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new one.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                placeholder="Enter current password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handlePasswordChange}>
+              Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
