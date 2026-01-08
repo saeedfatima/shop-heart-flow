@@ -10,7 +10,7 @@ const footerLinks = {
   ],
   help: [
     { name: 'Contact Us', path: '/contact' },
-    { name: 'Shipping', path: '/shipping' },
+    { name: 'Delivery', path: '/delivery' },
     { name: 'Returns', path: '/returns' },
   ],
   about: [
