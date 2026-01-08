@@ -1,5 +1,6 @@
 // Footer component with links and newsletter
 import { Link } from 'react-router-dom';
+import logo from '@/assets/logo.png';
 
 const footerLinks = {
   shop: [
@@ -27,7 +28,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="inline-block">
-              <span className="text-xl font-semibold tracking-tight">ATELIER</span>
+              <img src={logo} alt="StyleCart" className="h-12 w-auto" />
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               Timeless pieces crafted with intention. Quality over quantity, always.

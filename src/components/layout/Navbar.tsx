@@ -13,7 +13,7 @@ import {
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-
+import logo from '@/assets/logo.png';
 const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'Shop', path: '/shop' },
@@ -43,7 +43,7 @@ export function Navbar() {
       <nav className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-xl font-semibold tracking-tight">ATELIER</span>
+          <img src={logo} alt="StyleCart" className="h-10 w-auto" />
         </Link>
 
         {/* Desktop Navigation */}
