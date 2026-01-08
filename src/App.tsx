@@ -20,6 +20,10 @@ import UserDashboard from "./pages/UserDashboard";
 import About from "./pages/About";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Returns from "./pages/Returns";
+import Sustainability from "./pages/Sustainability";
+import Delivery from "./pages/Delivery";
+import Careers from "./pages/Careers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +49,10 @@ const App = () => (
               <Route path="/about" element={<About />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/returns" element={<Returns />} />
+              <Route path="/sustainability" element={<Sustainability />} />
+              <Route path="/delivery" element={<Delivery />} />
+              <Route path="/careers" element={<Careers />} />
               <Route path="/account" element={<Account />} />
               <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/dashboard/*" element={<UserDashboard />} />
