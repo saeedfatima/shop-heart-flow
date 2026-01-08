@@ -217,12 +217,19 @@ const Contact = () => {
                 </Button>
               </div>
 
-              {/* Map Placeholder */}
-              <div className="bg-muted rounded-2xl h-48 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <MapPin className="h-8 w-8 mx-auto mb-2" />
-                  <p className="text-sm">Map coming soon</p>
-                </div>
+              {/* Google Maps Embed */}
+              <div className="rounded-2xl overflow-hidden h-64">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.9663095343008!2d-73.9903752!3d40.7411794!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c259a9b3117469%3A0xd134e199a405a163!2sEmpire%20State%20Building!5e0!3m2!1sen!2sus!4v1699000000000!5m2!1sen!2sus"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Store Location"
+                  className="w-full h-full"
+                />
               </div>
             </motion.div>
           </div>
