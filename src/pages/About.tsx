@@ -26,10 +26,9 @@ const values = [
 ];
 
 const team = [
-  { name: 'Alexandra Chen', role: 'Founder & Creative Director', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' },
-  { name: 'Marcus Williams', role: 'Head of Design', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400' },
-  { name: 'Sofia Rodriguez', role: 'Sustainability Lead', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400' },
-  { name: 'David Park', role: 'Operations Director', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400' },
+  { name: 'Shaheeda Khan', role: 'Founder & Creative Director', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' },
+  { name: 'James Chen', role: 'IT Office Officer', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400' },
+  { name: 'Priya Sharma', role: 'Marketing Manager', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400' },
 ];
 
 export default function About() {

@@ -46,8 +46,8 @@ const Contact = () => {
     {
       icon: Mail,
       label: 'Email',
-      value: 'hello@atelier.com',
-      href: 'mailto:hello@atelier.com',
+      value: 'hello@shaheedasaccessories.com',
+      href: 'mailto:hello@shaheedasaccessories.com',
     },
     {
       icon: Phone,
