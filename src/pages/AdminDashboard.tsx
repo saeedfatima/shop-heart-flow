@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { useAuth } from "@/context/AuthContext";
+import { formatNaira, formatAdminCurrency } from "@/lib/currency";
 import { 
   Package, 
   ShoppingCart, 
@@ -79,27 +80,39 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const StatCard = ({ title, value, change, icon: Icon, prefix = "" }: { 
+const StatCard = ({ title, value, change, icon: Icon, showDual = false, nairaValue }: { 
   title: string; 
   value: string | number; 
   change: number; 
   icon: React.ElementType;
-  prefix?: string;
-}) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      <Icon className="h-4 w-4 text-muted-foreground" />
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">{prefix}{typeof value === 'number' ? value.toLocaleString() : value}</div>
-      <div className={`flex items-center text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-        {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-        <span>{Math.abs(change)}% from last month</span>
-      </div>
-    </CardContent>
-  </Card>
-);
+  showDual?: boolean;
+  nairaValue?: number;
+}) => {
+  const dualCurrency = nairaValue ? formatAdminCurrency(nairaValue) : null;
+  
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        {showDual && dualCurrency ? (
+          <div>
+            <div className="text-2xl font-bold">{dualCurrency.naira}</div>
+            <div className="text-sm text-muted-foreground">{dualCurrency.usd}</div>
+          </div>
+        ) : (
+          <div className="text-2xl font-bold">{typeof value === 'number' ? value.toLocaleString() : value}</div>
+        )}
+        <div className={`flex items-center text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          <span>{Math.abs(change)}% from last month</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const DashboardOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -117,7 +130,7 @@ const DashboardOverview = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard title="Total Revenue" value={mockStats.totalRevenue.toFixed(2)} change={mockStats.revenueChange} icon={DollarSign} prefix="$" />
+        <StatCard title="Total Revenue" value="" change={mockStats.revenueChange} icon={DollarSign} showDual={true} nairaValue={mockStats.totalRevenue} />
         <StatCard title="Total Orders" value={mockStats.totalOrders} change={mockStats.ordersChange} icon={ShoppingCart} />
         <StatCard title="Products" value={mockStats.totalProducts} change={mockStats.productsChange} icon={Package} />
         <StatCard title="Customers" value={mockStats.totalCustomers} change={mockStats.customersChange} icon={Users} />
@@ -163,7 +176,7 @@ const DashboardOverview = () => {
                       <TableCell className="font-medium">{order.id}</TableCell>
                       <TableCell>{order.customer}</TableCell>
                       <TableCell className="hidden md:table-cell">{order.email}</TableCell>
-                      <TableCell>${order.total.toFixed(2)}</TableCell>
+                      <TableCell>{formatNaira(order.total)}</TableCell>
                       <TableCell><Badge className={getStatusColor(order.status)}>{order.status}</Badge></TableCell>
                       <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
                       <TableCell className="text-right"><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></TableCell>
@@ -202,7 +215,7 @@ const DashboardOverview = () => {
                       <TableCell className="font-medium">{product.id}</TableCell>
                       <TableCell>{product.name}</TableCell>
                       <TableCell className="hidden md:table-cell">{product.category}</TableCell>
-                      <TableCell>${product.price.toFixed(2)}</TableCell>
+                      <TableCell>{formatNaira(product.price)}</TableCell>
                       <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
                       <TableCell><Badge className={getStatusColor(product.status)}>{product.status.replace('_', ' ')}</Badge></TableCell>
                       <TableCell className="text-right">
@@ -240,7 +253,7 @@ const DashboardOverview = () => {
                       <TableCell>{customer.name}</TableCell>
                       <TableCell className="hidden md:table-cell">{customer.email}</TableCell>
                       <TableCell>{customer.orders}</TableCell>
-                      <TableCell className="hidden sm:table-cell">${customer.spent.toFixed(2)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{formatNaira(customer.spent)}</TableCell>
                       <TableCell className="hidden lg:table-cell">{customer.joined}</TableCell>
                       <TableCell className="text-right"><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></TableCell>
                     </TableRow>

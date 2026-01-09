@@ -136,15 +136,15 @@ const UserSettings = () => {
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select defaultValue="usd">
+                <Select defaultValue="ngn">
                   <SelectTrigger>
                     <SelectValue placeholder="Currency" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="ngn">NGN (₦)</SelectItem>
                     <SelectItem value="usd">USD ($)</SelectItem>
                     <SelectItem value="eur">EUR (€)</SelectItem>
                     <SelectItem value="gbp">GBP (£)</SelectItem>
-                    <SelectItem value="cad">CAD ($)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Eye, Mail, Users, UserPlus, ShoppingBag, DollarSign } from "lucide-react";
+import { formatNaira, formatAdminCurrency } from "@/lib/currency";
 
 const mockCustomers = [
   { id: "USR-001", name: "John Doe", email: "john@example.com", orders: 12, spent: 1299.99, joined: "2023-06-15", status: "active", avatar: null },
@@ -89,7 +90,8 @@ const AdminCustomers = () => {
             <div className="flex items-center gap-3">
               <DollarSign className="h-8 w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">$156</p>
+                <p className="text-2xl font-bold">₦234,000</p>
+                <p className="text-sm text-muted-foreground">~$156</p>
                 <p className="text-xs text-muted-foreground">Avg. Customer Value</p>
               </div>
             </div>
@@ -148,7 +150,7 @@ const AdminCustomers = () => {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{customer.email}</TableCell>
                   <TableCell>{customer.orders}</TableCell>
-                  <TableCell className="hidden sm:table-cell">${customer.spent.toFixed(2)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatNaira(customer.spent)}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(customer.status)}>
                       {customer.status}

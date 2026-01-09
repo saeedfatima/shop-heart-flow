@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CartItem as CartItemType } from '@/types/product';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
+import { formatNaira } from '@/lib/currency';
 
 interface CartItemProps {
   item: CartItemType;
@@ -88,7 +89,7 @@ export function CartItem({ item }: CartItemProps) {
           </div>
 
           {/* Price */}
-          <span className="font-semibold">${(product.price * quantity).toFixed(2)}</span>
+          <span className="font-semibold">{formatNaira(product.price * quantity)}</span>
         </div>
       </div>
     </motion.div>

@@ -6,6 +6,7 @@ import { Layout } from '@/components/layout/Layout';
 import { CartItem } from '@/components/cart/CartItem';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
+import { formatNaira } from '@/lib/currency';
 
 const Cart = () => {
   const { items, getSubtotal, getShipping, getTotal, clearCart } = useCart();
@@ -71,22 +72,22 @@ const Cart = () => {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>{formatNaira(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                    <span>{shipping === 0 ? 'Free' : formatNaira(shipping)}</span>
                   </div>
                   {shipping > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Free shipping on orders over $100
+                      Free shipping on orders over ₦15,000
                     </p>
                   )}
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatNaira(total)}</span>
                 </div>
 
                 <Button asChild variant="cart" size="lg" className="mt-6">
