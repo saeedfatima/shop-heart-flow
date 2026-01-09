@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useCart } from '@/context/CartContext';
 import { toast } from '@/hooks/use-toast';
 import { CustomerInfo } from '@/types/product';
+import { formatNaira } from '@/lib/currency';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -288,7 +289,7 @@ const Checkout = () => {
                         </p>
                       </div>
                       <span className="text-sm font-medium">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        {formatNaira(item.product.price * item.quantity)}
                       </span>
                     </div>
                   ))}
@@ -297,17 +298,17 @@ const Checkout = () => {
                 <div className="space-y-3 text-sm border-t border-border pt-4">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>{formatNaira(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                    <span>{shipping === 0 ? 'Free' : formatNaira(shipping)}</span>
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border flex justify-between font-semibold text-lg">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatNaira(total)}</span>
                 </div>
 
                 <Button
@@ -327,7 +328,7 @@ const Checkout = () => {
                       Processing...
                     </motion.span>
                   ) : (
-                    `Pay $${total.toFixed(2)}`
+                    `Pay ${formatNaira(total)}`
                   )}
                 </Button>
               </div>

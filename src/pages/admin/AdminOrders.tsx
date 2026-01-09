@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Eye, Edit, Package, Calendar, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
+import { formatNaira } from "@/lib/currency";
 
 const mockOrders = [
   { id: "ORD-001", customer: "John Doe", email: "john@example.com", total: 299.99, status: "delivered", date: "2024-01-15", items: 3 },
@@ -166,7 +167,7 @@ const AdminOrders = () => {
                   <TableCell>{order.customer}</TableCell>
                   <TableCell className="hidden md:table-cell">{order.email}</TableCell>
                   <TableCell>{order.items}</TableCell>
-                  <TableCell>${order.total.toFixed(2)}</TableCell>
+                  <TableCell>{formatNaira(order.total)}</TableCell>
                   <TableCell>
                     <Badge className={`${getStatusColor(order.status)} flex items-center gap-1 w-fit`}>
                       {getStatusIcon(order.status)}

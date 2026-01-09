@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Plus, Edit, Trash2, Package, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatNaira } from "@/lib/currency";
 
 const mockProducts = [
   { id: "PRD-001", name: "Classic White Tee", category: "T-Shirts", price: 29.99, stock: 150, status: "active", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop" },
@@ -109,8 +110,8 @@ const AdminProducts = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price ($)</Label>
-                  <Input id="price" type="number" placeholder="29.99" />
+                  <Label htmlFor="price">Price (₦)</Label>
+                  <Input id="price" type="number" placeholder="45000" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="stock">Stock</Label>
@@ -228,7 +229,7 @@ const AdminProducts = () => {
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{product.category}</TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
+                  <TableCell>{formatNaira(product.price)}</TableCell>
                   <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(product.status)}>

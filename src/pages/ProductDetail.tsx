@@ -9,6 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { getProductById } from '@/data/products';
 import { ProductColor, ProductSize } from '@/types/product';
 import { ProductReviews } from '@/components/products/ProductReviews';
+import { formatNaira } from '@/lib/currency';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,10 +102,10 @@ const ProductDetail = () => {
               <p className="text-sm text-muted-foreground">{product.category}</p>
               <h1 className="mt-1 text-3xl font-semibold">{product.name}</h1>
               <div className="mt-3 flex items-center gap-3">
-                <span className="text-2xl font-semibold">${product.price}</span>
+                <span className="text-2xl font-semibold">{formatNaira(product.price)}</span>
                 {product.originalPrice && (
                   <span className="text-lg text-muted-foreground line-through">
-                    ${product.originalPrice}
+                    {formatNaira(product.originalPrice)}
                   </span>
                 )}
               </div>

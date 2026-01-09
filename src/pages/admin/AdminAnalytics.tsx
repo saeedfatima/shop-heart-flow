@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, DollarSign, ShoppingCart, Users, Package, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { formatNaira, formatAdminCurrency } from "@/lib/currency";
 
 const AdminAnalytics = () => {
   return (
@@ -29,7 +30,6 @@ const AdminAnalytics = () => {
         </Select>
       </div>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
@@ -40,7 +40,8 @@ const AdminAnalytics = () => {
                 12.5%
               </span>
             </div>
-            <p className="text-2xl font-bold">$45,231</p>
+            <p className="text-2xl font-bold">₦67,846,500</p>
+            <p className="text-sm text-muted-foreground">~$45,231</p>
             <p className="text-xs text-muted-foreground">Total Revenue</p>
           </CardContent>
         </Card>
@@ -162,7 +163,7 @@ const AdminAnalytics = () => {
                     <p className="font-medium">{product.name}</p>
                     <p className="text-sm text-muted-foreground">{product.sales} sold</p>
                   </div>
-                  <span className="font-semibold">${product.revenue.toLocaleString()}</span>
+                  <span className="font-semibold">{formatNaira(product.revenue)}</span>
                 </div>
               ))}
             </div>

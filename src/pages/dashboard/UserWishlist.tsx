@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, ShoppingCart, Trash2, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatNaira } from "@/lib/currency";
 
 const mockWishlist = [
   { 
@@ -130,10 +131,10 @@ const UserWishlist = () => {
             <CardContent className="p-4">
               <h3 className="font-semibold mb-1">{item.name}</h3>
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg font-bold text-primary">${item.price.toFixed(2)}</span>
+                <span className="text-lg font-bold text-primary">{formatNaira(item.price)}</span>
                 {item.originalPrice && (
                   <span className="text-sm text-muted-foreground line-through">
-                    ${item.originalPrice.toFixed(2)}
+                    {formatNaira(item.originalPrice)}
                   </span>
                 )}
               </div>

@@ -70,7 +70,7 @@ const AdminSettings = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
-                    <Input id="currency" defaultValue="USD" />
+                    <Input id="currency" defaultValue="NGN (₦)" />
                   </div>
                 </div>
               </CardContent>
@@ -169,7 +169,7 @@ const AdminSettings = () => {
                   <Label className="font-medium">Free Shipping Threshold</Label>
                   <p className="text-sm text-muted-foreground">Orders above this amount get free shipping</p>
                 </div>
-                <Input className="w-24" defaultValue="$50" />
+                <Input className="w-28" defaultValue="₦15,000" />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -177,7 +177,7 @@ const AdminSettings = () => {
                   <Label className="font-medium">Standard Shipping Rate</Label>
                   <p className="text-sm text-muted-foreground">Flat rate for standard delivery</p>
                 </div>
-                <Input className="w-24" defaultValue="$5.99" />
+                <Input className="w-28" defaultValue="₦1,800" />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
@@ -185,7 +185,7 @@ const AdminSettings = () => {
                   <Label className="font-medium">Express Shipping Rate</Label>
                   <p className="text-sm text-muted-foreground">Flat rate for express delivery</p>
                 </div>
-                <Input className="w-24" defaultValue="$12.99" />
+                <Input className="w-28" defaultValue="₦3,500" />
               </div>
             </CardContent>
           </Card>

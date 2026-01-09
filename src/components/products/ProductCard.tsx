@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Product } from '@/types/product';
-
+import { formatNaira } from '@/lib/currency';
 interface ProductCardProps {
   product: Product;
   index?: number;
@@ -61,10 +61,10 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           </h3>
           <p className="text-sm text-muted-foreground">{product.category}</p>
           <div className="flex items-center gap-2">
-            <span className="font-semibold">${product.price}</span>
+            <span className="font-semibold">{formatNaira(product.price)}</span>
             {hasDiscount && (
               <span className="text-sm text-muted-foreground line-through">
-                ${product.originalPrice}
+                {formatNaira(product.originalPrice!)}
               </span>
             )}
           </div>

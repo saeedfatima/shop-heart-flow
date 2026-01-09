@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Search, Eye, Calendar, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
+import { formatNaira } from "@/lib/currency";
 
 const mockOrders = [
   { 
@@ -134,7 +135,7 @@ const UserOrders = () => {
                     {getStatusIcon(order.status)}
                     {order.status}
                   </Badge>
-                  <span className="font-semibold">${order.total.toFixed(2)}</span>
+                  <span className="font-semibold">{formatNaira(order.total)}</span>
                 </div>
               </div>
             </CardHeader>
@@ -150,7 +151,7 @@ const UserOrders = () => {
                     <div className="flex-1">
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Qty: {item.quantity} × ${item.price.toFixed(2)}
+                        Qty: {item.quantity} × {formatNaira(item.price)}
                       </p>
                     </div>
                   </div>
