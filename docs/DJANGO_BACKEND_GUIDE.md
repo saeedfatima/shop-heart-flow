@@ -21,15 +21,51 @@
 
 ## 1. Project Setup
 
-### 1.1 Create Django Project
+### 1.1 Prerequisites - Installing XAMPP with MySQL
+
+Before setting up Django, you need to install and configure XAMPP for MySQL database:
+
+#### Step 1: Download and Install XAMPP
+
+1. Download XAMPP from [https://www.apachefriends.org/](https://www.apachefriends.org/)
+2. Run the installer and select at minimum: **Apache**, **MySQL**, and **phpMyAdmin**
+3. Complete the installation (default path: `C:\xampp` on Windows, `/opt/lampp` on Linux)
+
+#### Step 2: Start MySQL Server
+
+1. Open **XAMPP Control Panel**
+2. Click **Start** next to **MySQL**
+3. Optionally start **Apache** if you want to use phpMyAdmin
+
+#### Step 3: Create Database Using phpMyAdmin
+
+1. Open your browser and go to `http://localhost/phpmyadmin`
+2. Click **"New"** in the left sidebar
+3. Enter database name: `shaheeda_ecommerce`
+4. Select collation: `utf8mb4_unicode_ci`
+5. Click **"Create"**
+
+#### Step 4: Create Database User (Recommended)
+
+In phpMyAdmin, go to **User accounts** → **Add user account**:
+- Username: `shaheeda_user`
+- Host: `localhost`
+- Password: Choose a strong password
+- Check **"Grant all privileges on database shaheeda_ecommerce"**
+- Click **"Go"**
+
+### 1.2 Create Django Project
 
 ```bash
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install django djangorestframework django-cors-headers Pillow djangorestframework-simplejwt
+# Install dependencies (note: mysqlclient requires MySQL development headers)
+pip install django djangorestframework django-cors-headers Pillow djangorestframework-simplejwt mysqlclient
+
+# Alternative if mysqlclient fails to install:
+# pip install django djangorestframework django-cors-headers Pillow djangorestframework-simplejwt pymysql
 
 # Create project and app
 django-admin startproject ecommerce_backend
@@ -38,7 +74,39 @@ python manage.py startapp store
 python manage.py startapp accounts
 ```
 
-### 1.2 Project Structure
+#### Troubleshooting mysqlclient Installation
+
+**Windows:**
+```bash
+# Install using pre-built wheel
+pip install mysqlclient
+
+# If that fails, download wheel from: https://www.lfd.uci.edu/~gohlke/pythonlibs/#mysqlclient
+# Then install: pip install mysqlclient-X.X.X-cpXX-cpXX-win_amd64.whl
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get install python3-dev default-libmysqlclient-dev build-essential
+pip install mysqlclient
+```
+
+**macOS:**
+```bash
+brew install mysql-client
+export PATH="/usr/local/opt/mysql-client/bin:$PATH"
+pip install mysqlclient
+```
+
+**Alternative: Using PyMySQL (if mysqlclient won't install)**
+
+If you used `pymysql` instead, add this to `ecommerce_backend/__init__.py`:
+```python
+import pymysql
+pymysql.install_as_MySQLdb()
+```
+
+### 1.3 Project Structure
 
 ```
 ecommerce_backend/
@@ -65,7 +133,7 @@ ecommerce_backend/
 └── manage.py
 ```
 
-### 1.3 Settings Configuration
+### 1.4 Settings Configuration
 
 ```python
 # ecommerce_backend/settings.py
@@ -99,6 +167,39 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# =============================================================================
+# DATABASE CONFIGURATION - MySQL with XAMPP
+# =============================================================================
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'shaheeda_ecommerce',      # Database name created in phpMyAdmin
+        'USER': 'shaheeda_user',            # MySQL username (or 'root' for default)
+        'PASSWORD': 'your_password_here',   # MySQL password (empty string for root default)
+        'HOST': 'localhost',                # XAMPP MySQL runs on localhost
+        'PORT': '3306',                     # Default MySQL port
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+    }
+}
+
+# Alternative: Using root user (not recommended for production)
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'shaheeda_ecommerce',
+#         'USER': 'root',
+#         'PASSWORD': '',  # XAMPP default has no password for root
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#     }
+# }
+
+# =============================================================================
+
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -128,6 +229,42 @@ MEDIA_ROOT = BASE_DIR / 'media'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 ```
+
+### 1.5 Initialize Database
+
+After configuring settings, run migrations to create tables in MySQL:
+
+```bash
+# Make sure XAMPP MySQL is running!
+
+# Create migrations for your models
+python manage.py makemigrations accounts
+python manage.py makemigrations store
+
+# Apply migrations to MySQL database
+python manage.py migrate
+
+# Create superuser for admin access
+python manage.py createsuperuser
+```
+
+### 1.6 Verify MySQL Connection
+
+You can verify the connection in Django shell:
+
+```bash
+python manage.py shell
+```
+
+```python
+from django.db import connection
+cursor = connection.cursor()
+cursor.execute("SELECT VERSION()")
+row = cursor.fetchone()
+print(f"MySQL Version: {row[0]}")
+```
+
+You can also check phpMyAdmin at `http://localhost/phpmyadmin` to see your tables created under the `shaheeda_ecommerce` database.
 
 ---
 
