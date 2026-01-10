@@ -43,7 +43,8 @@ export function Navbar() {
       <nav className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="StyleCart" className="h-10 w-auto" />
+          <img src={logo} alt="Shay's Accessories" className="h-10 w-auto" />
+          <span className="font-semibold text-lg hidden sm:inline">Shay's Accessories</span>
         </Link>
 
         {/* Desktop Navigation */}
