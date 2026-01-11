@@ -104,14 +104,14 @@ const DashboardOverview = () => {
           <Avatar className="h-16 w-16">
             <AvatarImage src={user?.avatar} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
+              {user?.first_name?.[0]}{user?.last_name?.[0]}
             </AvatarFallback>
           </Avatar>
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              Welcome back, {user?.firstName}!
+              Welcome back, {user?.first_name}!
             </h1>
-            <p className="text-muted-foreground">Member since {user?.createdAt}</p>
+            <p className="text-muted-foreground">Member since {user?.created_at}</p>
           </div>
         </div>
       </div>

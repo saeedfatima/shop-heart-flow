@@ -5,7 +5,19 @@ import { ArrowRight } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Button } from '@/components/ui/button';
+import axios from 'axios';
 import { getFeaturedProducts, categories } from '@/data/products';
+
+
+const API_BASE_URL = 'http://localhost:8000';
+
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api/`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 
 const Index = () => {
   const featuredProducts = getFeaturedProducts();

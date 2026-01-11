@@ -46,13 +46,13 @@ const Contact = () => {
     {
       icon: Mail,
       label: 'Email',
-      value: 'hello@shaheedasaccessories.com',
+      value: 'info@shaheedasaccessories.com',
       href: 'mailto:hello@shaheedasaccessories.com',
     },
     {
       icon: Phone,
       label: 'Phone',
-      value: '+1 (555) 123-4567',
+      value: '+234 8133424701',
       href: 'tel:+15551234567',
     },
     {
@@ -63,7 +63,7 @@ const Contact = () => {
     {
       icon: MapPin,
       label: 'Address',
-      value: '123 Fashion Ave, New York, NY 10001',
+      value: '123 Muhammadu buhari way along side nwu kano, Nigeria',
     },
   ];
 

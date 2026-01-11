@@ -59,11 +59,11 @@ export function LoginForm({ onForgotPassword, onSwitchToSignUp }: LoginFormProps
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Demo credentials hint */}
-        <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm">
+        {/* <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm">
           <p className="font-medium text-foreground mb-1">Demo Credentials:</p>
           <p className="text-muted-foreground">Admin: admin@example.com / password123</p>
           <p className="text-muted-foreground">User: user@example.com / password123</p>
-        </div>
+        </div> */}
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

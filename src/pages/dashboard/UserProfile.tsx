@@ -25,8 +25,8 @@ const UserProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || "",
-    lastName: user?.lastName || "",
+    firstName: user?.first_name || "",
+    lastName: user?.last_name || "",
     email: user?.email || "",
     phone: user?.phone || "+1 (555) 123-4567",
     bio: "",
@@ -106,8 +106,8 @@ const UserProfile = () => {
     await new Promise(resolve => setTimeout(resolve, 800));
     
     updateProfile({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
+      first_name: formData.firstName,
+      last_name: formData.lastName,
       phone: formData.phone,
       avatar: avatarPreview || undefined,
     });
@@ -175,7 +175,7 @@ const UserProfile = () => {
                 <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
                   <AvatarImage src={avatarPreview || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-3xl">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    {user?.first_name?.[0]}{user?.last_name?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 {isUploading && (

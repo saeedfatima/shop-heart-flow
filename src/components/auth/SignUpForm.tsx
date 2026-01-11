@@ -48,7 +48,14 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
 
     setIsLoading(true);
     
-    const result = await signup({ firstName, lastName, email, password });
+    const result = await signup({
+    firstName,
+    lastName,
+    email,
+    password,
+    passwordConfirm: confirmPassword
+  });
+
     setIsLoading(false);
     
     if (result.success) {
