@@ -43,7 +43,8 @@ export function Navbar() {
       <nav className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="StyleCart" className="h-10 w-auto" />
+          <img src={logo} alt="Shay's Accessories" className="h-10 w-auto" />
+          <span className="font-semibold text-lg hidden sm:inline">Shay's Accessories</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -118,14 +119,9 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="hidden md:flex items-center gap-2">
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/auth">Login</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link to="/auth?mode=signup">Register</Link>
-              </Button>
-            </div>
+            <Button asChild variant="ghost" size="sm" className="hidden md:flex">
+              <Link to="/auth">Login</Link>
+            </Button>
           )}
 
           {/* Mobile Menu Toggle */}
@@ -202,15 +198,10 @@ export function Navbar() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2 px-4">
+                  <div className="px-4">
                     <Button asChild variant="outline" className="w-full">
                       <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
                         Login
-                      </Link>
-                    </Button>
-                    <Button asChild className="w-full">
-                      <Link to="/auth?mode=signup" onClick={() => setIsMobileMenuOpen(false)}>
-                        Register
                       </Link>
                     </Button>
                   </div>

@@ -27,8 +27,9 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link to="/" className="inline-block">
-              <img src={logo} alt="StyleCart" className="h-12 w-auto" />
+            <Link to="/" className="inline-flex items-center gap-2">
+              <img src={logo} alt="Shay's Accessories" className="h-12 w-auto" />
+              <span className="font-semibold text-lg">Shay's Accessories</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               Timeless pieces crafted with intention. Quality over quantity, always.
@@ -90,7 +91,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} ATELIER. All rights reserved.
+            © {new Date().getFullYear()} Shay's Accessories. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
