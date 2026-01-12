@@ -165,7 +165,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
         id: String(Date.now()),
         productId,
         userId: user?.id || 'guest',
-        userName: user ? `${user.firstName} ${user.lastName.charAt(0)}.` : 'Guest User',
+        userName: user ? `${user.first_name} ${user.last_name.charAt(0)}.` : 'Guest User',
         rating: validatedData.rating,
         title: validatedData.title,
         comment: validatedData.comment,
