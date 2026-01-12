@@ -95,7 +95,7 @@ export function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <div className="px-2 py-1.5 text-sm">
-                  <p className="font-medium">{user.firstName} {user.lastName}</p>
+                  <p className="font-medium">{user.first_name} {user.last_name}</p>
                   <p className="text-muted-foreground text-xs">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
@@ -170,7 +170,7 @@ export function Navbar() {
                 {user ? (
                   <div className="space-y-1">
                     <div className="px-4 py-2">
-                      <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
+                      <p className="font-medium text-sm">{user.first_name} {user.last_name}</p>
                       <p className="text-muted-foreground text-xs">{user.email}</p>
                     </div>
                     <Link

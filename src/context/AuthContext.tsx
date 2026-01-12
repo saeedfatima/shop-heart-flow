@@ -45,9 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = async () => {
-    const { data } = await api.get<{ success: boolean; user: User }>('/auth/profile/');
-    if (data?.success) {
-      setUser(data.user);
+    try {
+      const { data } = await api.get<{ success: boolean; user: User }>('/auth/profile/');
+      if (data?.success) {
+        setUser(data.user);
+      }
+    } catch {
+      // Server not available - silently fail
+      console.log('Backend server not available');
     }
   };
 
@@ -55,7 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       const token = localStorage.getItem('accessToken');
       if (token) {
-        await refreshUser();
+        try {
+          await refreshUser();
+        } catch {
+          // Server not available - clear tokens
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+        }
       }
       setIsLoading(false);
     };
@@ -64,14 +75,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { data, error } = await api.login(email, password);
-    
-    if (data?.success) {
-      setUser(data.user);
-      return { success: true, message: data.message };
+    try {
+      const { data, error } = await api.login(email, password);
+      
+      if (data?.success) {
+        setUser(data.user);
+        return { success: true, message: data.message };
+      }
+      
+      // Check if it's a network error
+      if (error === 'Network error') {
+        return { success: false, message: 'Cannot connect to server. Please ensure the Django backend is running on localhost:8000' };
+      }
+      
+      return { success: false, message: error || 'Login failed' };
+    } catch {
+      return { success: false, message: 'Cannot connect to server. Please ensure the Django backend is running.' };
     }
-    
-    return { success: false, message: error || 'Login failed' };
   };
 
   const signup = async (signupData: SignupData) => {

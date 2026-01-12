@@ -184,7 +184,7 @@ export function AdminSidebar() {
           <Avatar className="h-9 w-9">
             <AvatarImage src={user?.avatar} />
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
+              {user?.first_name?.[0]}{user?.last_name?.[0]}
             </AvatarFallback>
           </Avatar>
           <AnimatePresence mode="wait">
@@ -196,7 +196,7 @@ export function AdminSidebar() {
                 className="overflow-hidden"
               >
                 <p className="text-sm font-medium truncate">
-                  {user?.firstName} {user?.lastName}
+                  {user?.first_name} {user?.last_name}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
                   {user?.email}

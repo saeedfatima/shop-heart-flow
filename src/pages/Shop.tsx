@@ -7,20 +7,11 @@ import { Layout } from '@/components/layout/Layout';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Button } from '@/components/ui/button';
 
-import axios from 'axios';
-
 /* =======================
    API CONFIG
 ======================= */
 
-const API_BASE_URL = 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: `${API_BASE_URL}/api/`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
 
 /* =======================
    NORMALIZER
@@ -61,9 +52,15 @@ const Shop = () => {
   ======================= */
 
   useEffect(() => {
-    api.get('categories/').then(res => {
-      setCategories([{ name: 'All', slug: 'all' }, ...res.data]);
-    });
+    fetch(`${API_BASE_URL}/api/categories/`)
+      .then(res => res.json())
+      .then(data => {
+        setCategories([{ name: 'All', slug: 'all' }, ...data]);
+      })
+      .catch(() => {
+        // Server not available - use empty categories
+        setCategories([{ name: 'All', slug: 'all' }]);
+      });
   }, []);
 
   /* =======================
@@ -73,29 +70,25 @@ const Shop = () => {
   useEffect(() => {
     setLoading(true);
 
-    api
-      .get('products/', {
-        params: {
-          page,
-          category: activeCategory !== 'all' ? activeCategory : undefined,
-          search: search || undefined,
-          ordering:
-            sortBy === 'price-low'
-              ? 'price'
-              : sortBy === 'price-high'
-              ? '-price'
-              : sortBy === 'newest'
-              ? '-id'
-              : undefined,
-        },
-      })
-      .then(res => {
-        setProducts(res.data.results.map(normalizeProduct));
-        setCount(res.data.count);
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    if (activeCategory !== 'all') params.set('category', activeCategory);
+    if (search) params.set('search', search);
+    if (sortBy === 'price-low') params.set('ordering', 'price');
+    else if (sortBy === 'price-high') params.set('ordering', '-price');
+    else if (sortBy === 'newest') params.set('ordering', '-id');
+
+    fetch(`${API_BASE_URL}/api/products/?${params.toString()}`)
+      .then(res => res.json())
+      .then(data => {
+        setProducts(data.results?.map(normalizeProduct) || []);
+        setCount(data.count || 0);
         setLoading(false);
       })
-      .catch(err => {
-        console.error(err);
+      .catch(() => {
+        // Server not available - show empty state
+        setProducts([]);
+        setCount(0);
         setLoading(false);
       });
   }, [activeCategory, sortBy, page, search]);
