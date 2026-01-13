@@ -1,13 +1,12 @@
 // Product detail page with image gallery and variant selection
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Minus, Plus, Check, Star } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
-import { getProductById } from '@/data/products';
-import { ProductColor, ProductSize } from '@/types/product';
+import { productService, Product, ProductColor, ProductSize } from '@/lib/apiServices';
 import { ProductReviews } from '@/components/products/ProductReviews';
 import { formatNaira } from '@/lib/currency';
 
@@ -16,14 +15,51 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   
-  const product = getProductById(id || '');
-  
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(
-    product?.colors[0] || null
-  );
+  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null);
   const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      try {
+        const data = await productService.getById(id);
+        if (data) {
+          setProduct(data);
+          setSelectedColor(data.colors?.[0] || null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch product:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container py-8 md:py-12">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+            <div className="aspect-[3/4] bg-muted animate-pulse rounded-lg" />
+            <div className="space-y-4">
+              <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+              <div className="h-10 w-3/4 bg-muted animate-pulse rounded" />
+              <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+              <div className="h-24 bg-muted animate-pulse rounded" />
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!product) {
     return (
@@ -40,7 +76,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!selectedColor || !selectedSize) return;
-    addToCart(product, selectedColor, selectedSize, quantity);
+    addToCart(product as any, selectedColor, selectedSize, quantity);
   };
 
   const canAddToCart = selectedColor && selectedSize && selectedSize.inStock;
@@ -127,57 +163,61 @@ const ProductDetail = () => {
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
             {/* Color Selection */}
-            <div>
-              <p className="font-medium mb-3">
-                Color: <span className="text-muted-foreground">{selectedColor?.name}</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((color) => (
-                  <button
-                    key={color.name}
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
-                      selectedColor?.name === color.name
-                        ? 'border-foreground'
-                        : 'border-transparent hover:border-border'
-                    }`}
-                    style={{ backgroundColor: color.value }}
-                    title={color.name}
-                  >
-                    {selectedColor?.name === color.name && (
-                      <Check
-                        className={`h-4 w-4 ${
-                          color.value === '#FFFFFF' ? 'text-foreground' : 'text-white'
-                        }`}
-                      />
-                    )}
-                  </button>
-                ))}
+            {product.colors && product.colors.length > 0 && (
+              <div>
+                <p className="font-medium mb-3">
+                  Color: <span className="text-muted-foreground">{selectedColor?.name}</span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color) => (
+                    <button
+                      key={color.name}
+                      onClick={() => setSelectedColor(color)}
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selectedColor?.name === color.name
+                          ? 'border-foreground'
+                          : 'border-transparent hover:border-border'
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    >
+                      {selectedColor?.name === color.name && (
+                        <Check
+                          className={`h-4 w-4 ${
+                            color.value === '#FFFFFF' ? 'text-foreground' : 'text-white'
+                          }`}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Size Selection */}
-            <div>
-              <p className="font-medium mb-3">Size</p>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size.name}
-                    onClick={() => size.inStock && setSelectedSize(size)}
-                    disabled={!size.inStock}
-                    className={`h-10 min-w-[48px] px-4 rounded-lg border text-sm font-medium transition-all ${
-                      selectedSize?.name === size.name
-                        ? 'bg-foreground text-background border-foreground'
-                        : size.inStock
-                        ? 'bg-background border-border hover:border-foreground'
-                        : 'bg-muted text-muted-foreground border-border cursor-not-allowed line-through'
-                    }`}
-                  >
-                    {size.name}
-                  </button>
-                ))}
+            {product.sizes && product.sizes.length > 0 && (
+              <div>
+                <p className="font-medium mb-3">Size</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size.name}
+                      onClick={() => size.inStock && setSelectedSize(size)}
+                      disabled={!size.inStock}
+                      className={`h-10 min-w-[48px] px-4 rounded-lg border text-sm font-medium transition-all ${
+                        selectedSize?.name === size.name
+                          ? 'bg-foreground text-background border-foreground'
+                          : size.inStock
+                          ? 'bg-background border-border hover:border-foreground'
+                          : 'bg-muted text-muted-foreground border-border cursor-not-allowed line-through'
+                      }`}
+                    >
+                      {size.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity */}
             <div>
