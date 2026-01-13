@@ -1,15 +1,36 @@
 // Home page with hero, categories, and featured products
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Button } from '@/components/ui/button';
-import { getFeaturedProducts, categories } from '@/data/products';
-
+import { categoryService, productService, Product, Category } from '@/lib/apiServices';
 
 const Index = () => {
-  const featuredProducts = getFeaturedProducts();
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [productsData, categoriesData] = await Promise.all([
+          productService.getFeatured(),
+          categoryService.getAll(),
+        ]);
+        setFeaturedProducts(productsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <Layout>
@@ -73,25 +94,33 @@ const Index = () => {
               View All
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.slice(1).map((category, index) => (
-              <motion.div
-                key={category.slug}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-              >
-                <Link
-                  to={`/shop?category=${category.slug}`}
-                  className="group block p-6 rounded-lg bg-card card-shadow hover:card-shadow-hover transition-all duration-300"
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {categories.map((category, index) => (
+                <motion.div
+                  key={category.slug}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
                 >
-                  <span className="block text-center font-medium group-hover:text-primary transition-colors">
-                    {category.name}
-                  </span>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
+                  <Link
+                    to={`/shop?category=${category.slug}`}
+                    className="group block p-6 rounded-lg bg-card card-shadow hover:card-shadow-hover transition-all duration-300"
+                  >
+                    <span className="block text-center font-medium group-hover:text-primary transition-colors">
+                      {category.name}
+                    </span>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -107,11 +136,23 @@ const Index = () => {
               View All
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-            {featuredProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="aspect-[3/4] bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+              {featuredProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-12">
+              No featured products available.
+            </p>
+          )}
         </div>
       </section>
 
