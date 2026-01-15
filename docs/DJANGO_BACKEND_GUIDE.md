@@ -2608,17 +2608,511 @@ curl "http://localhost:8000/api/products/?category=clothing&min_price=20&sort=-p
 
 ---
 
+## 11. cPanel Deployment Guide
+
+This section covers deploying your Django backend to a cPanel shared hosting environment.
+
+### 11.1 Prerequisites
+
+Before deploying to cPanel, ensure you have:
+- cPanel hosting account with Python support (Python 3.8+)
+- SSH access to your hosting (recommended)
+- MySQL database access through cPanel
+- Domain or subdomain configured
+
+### 11.2 Local Development Setup (XAMPP + MySQL)
+
+Your local development should mirror production as closely as possible:
+
+#### Local Settings (`settings_local.py`)
+
+```python
+# ecommerce_backend/settings_local.py
+from .settings import *
+
+DEBUG = True
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'shaheeda_ecommerce',
+        'USER': 'root',  # XAMPP default
+        'PASSWORD': '',   # XAMPP default (empty)
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+    }
+}
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',  # Vite dev server
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+]
+
+# Media files for local development
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+```
+
+#### Running Locally
+
+```bash
+# Start XAMPP MySQL first!
+# Then run Django with local settings
+python manage.py runserver --settings=ecommerce_backend.settings_local
+```
+
+### 11.3 Prepare for cPanel Deployment
+
+#### Step 1: Create Production Settings
+
+```python
+# ecommerce_backend/settings_production.py
+from .settings import *
+import os
+
+DEBUG = False
+
+# Your domain(s)
+ALLOWED_HOSTS = [
+    'yourdomain.com',
+    'www.yourdomain.com',
+    'api.yourdomain.com',  # If using subdomain for API
+]
+
+# cPanel MySQL Database Configuration
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'cpanelusername_shaheeda'),
+        'USER': os.environ.get('DB_USER', 'cpanelusername_dbuser'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'your_secure_password'),
+        'HOST': 'localhost',  # cPanel MySQL runs locally
+        'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+    }
+}
+
+# CORS for production frontend
+CORS_ALLOWED_ORIGINS = [
+    'https://yourdomain.com',
+    'https://www.yourdomain.com',
+    'https://shop-heart-flow.lovable.app',  # Your Lovable published URL
+]
+
+# Security settings for production
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+# HTTPS redirect (if not handled by cPanel/CloudFlare)
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Static and Media files
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Secret key from environment
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'your-fallback-secret-key-change-in-production')
+```
+
+#### Step 2: Create Requirements File
+
+```bash
+pip freeze > requirements.txt
+```
+
+Ensure these are included:
+```txt
+Django>=4.2
+djangorestframework>=3.14
+django-cors-headers>=4.3
+djangorestframework-simplejwt>=5.3
+Pillow>=10.0
+mysqlclient>=2.2
+# Or if using PyMySQL:
+# PyMySQL>=1.1
+```
+
+#### Step 3: Create WSGI Entry Point for cPanel
+
+```python
+# passenger_wsgi.py (place in project root)
+import os
+import sys
+
+# Add your project to the path
+project_home = '/home/cpanelusername/yourdomain.com/ecommerce_backend'
+if project_home not in sys.path:
+    sys.path.insert(0, project_home)
+
+# Set environment variables
+os.environ['DJANGO_SETTINGS_MODULE'] = 'ecommerce_backend.settings_production'
+
+# Activate virtual environment
+activate_this = '/home/cpanelusername/virtualenv/yourdomain.com/3.10/bin/activate_this.py'
+exec(open(activate_this).read(), {'__file__': activate_this})
+
+# Import Django WSGI application
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
+```
+
+### 11.4 cPanel Database Setup
+
+#### Step 1: Create MySQL Database in cPanel
+
+1. Log in to cPanel
+2. Go to **MySQL® Databases**
+3. Create new database: `shaheeda_ecommerce`
+   - cPanel will prefix it: `cpanelusername_shaheeda_ecommerce`
+4. Create new user: `shaheeda_user` with strong password
+   - cPanel will prefix it: `cpanelusername_shaheeda_user`
+5. Add user to database with **ALL PRIVILEGES**
+
+#### Step 2: Import Local Database (Optional)
+
+Export from local XAMPP:
+```bash
+# In XAMPP, use phpMyAdmin or command line:
+mysqldump -u root -p shaheeda_ecommerce > shaheeda_backup.sql
+```
+
+Import to cPanel:
+1. Go to **phpMyAdmin** in cPanel
+2. Select your database
+3. Click **Import**
+4. Upload `shaheeda_backup.sql`
+
+### 11.5 Deploy to cPanel
+
+#### Method 1: Using cPanel File Manager
+
+1. Zip your project (excluding `venv`, `__pycache__`, `.git`)
+2. Upload to `public_html/api` or your subdomain folder
+3. Extract the zip file
+4. Set up Python app (see Step 6)
+
+#### Method 2: Using Git (Recommended)
+
+1. Go to **Git™ Version Control** in cPanel
+2. Create repository from your GitHub/GitLab URL
+3. Set deploy path: `/home/cpanelusername/repositories/ecommerce_backend`
+
+#### Method 3: Using SSH/SFTP
+
+```bash
+# Connect via SSH
+ssh cpanelusername@yourdomain.com
+
+# Or use SFTP client like FileZilla
+# Upload to: /home/cpanelusername/yourdomain.com/
+```
+
+### 11.6 Setup Python Application in cPanel
+
+1. Go to **Setup Python App** in cPanel
+2. Click **CREATE APPLICATION**
+3. Configure:
+   - **Python version**: 3.10 (or latest available)
+   - **Application root**: `yourdomain.com/ecommerce_backend`
+   - **Application URL**: `api.yourdomain.com` or `yourdomain.com/api`
+   - **Application startup file**: `passenger_wsgi.py`
+   - **Application Entry point**: `application`
+4. Click **CREATE**
+5. Note the virtual environment path shown
+
+### 11.7 Install Dependencies
+
+After creating the Python app, use the cPanel terminal or SSH:
+
+```bash
+# Activate virtual environment (path from cPanel Python App page)
+source /home/cpanelusername/virtualenv/yourdomain.com/3.10/bin/activate
+
+# Navigate to project
+cd /home/cpanelusername/yourdomain.com/ecommerce_backend
+
+# Install dependencies
+pip install -r requirements.txt
+
+# If mysqlclient fails, try:
+pip install PyMySQL
+# Then add to __init__.py: import pymysql; pymysql.install_as_MySQLdb()
+```
+
+### 11.8 Run Migrations & Collect Static
+
+```bash
+# Still in virtual environment
+
+# Set production settings
+export DJANGO_SETTINGS_MODULE=ecommerce_backend.settings_production
+
+# Run migrations
+python manage.py migrate
+
+# Create superuser
+python manage.py createsuperuser
+
+# Collect static files
+python manage.py collectstatic --noinput
+```
+
+### 11.9 Configure Static & Media Files
+
+#### .htaccess for Static Files
+
+Create `/home/cpanelusername/yourdomain.com/public_html/.htaccess`:
+
+```apache
+# Serve static files
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/static/
+RewriteRule ^static/(.*)$ /home/cpanelusername/yourdomain.com/ecommerce_backend/staticfiles/$1 [L]
+
+# Serve media files
+RewriteCond %{REQUEST_URI} ^/media/
+RewriteRule ^media/(.*)$ /home/cpanelusername/yourdomain.com/ecommerce_backend/media/$1 [L]
+```
+
+#### Alternative: Symbolic Links
+
+```bash
+cd /home/cpanelusername/public_html
+ln -s /home/cpanelusername/yourdomain.com/ecommerce_backend/staticfiles static
+ln -s /home/cpanelusername/yourdomain.com/ecommerce_backend/media media
+```
+
+### 11.10 Environment Variables in cPanel
+
+#### Method 1: Using .env file
+
+Create `/home/cpanelusername/yourdomain.com/ecommerce_backend/.env`:
+
+```env
+DJANGO_SECRET_KEY=your-super-secret-key-here-change-me
+DB_NAME=cpanelusername_shaheeda_ecommerce
+DB_USER=cpanelusername_shaheeda_user
+DB_PASSWORD=your-secure-db-password
+DEBUG=False
+```
+
+Update `settings_production.py` to use python-dotenv:
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+# ... etc
+```
+
+Add to requirements.txt:
+```
+python-dotenv>=1.0
+```
+
+#### Method 2: Using passenger_wsgi.py
+
+Add environment variables directly in `passenger_wsgi.py`:
+
+```python
+os.environ['DJANGO_SECRET_KEY'] = 'your-secret-key'
+os.environ['DB_NAME'] = 'cpanelusername_shaheeda_ecommerce'
+os.environ['DB_USER'] = 'cpanelusername_shaheeda_user'
+os.environ['DB_PASSWORD'] = 'your-secure-password'
+```
+
+### 11.11 Update React Frontend for Production
+
+Update your `.env` or create `.env.production`:
+
+```env
+VITE_API_URL=https://api.yourdomain.com/api
+# Or if using path-based:
+VITE_API_URL=https://yourdomain.com/api
+```
+
+### 11.12 Complete Deployment Checklist
+
+#### Pre-Deployment
+- [ ] Test locally with MySQL (XAMPP) - same as production DB
+- [ ] All migrations created and tested
+- [ ] `requirements.txt` up to date
+- [ ] `settings_production.py` configured
+- [ ] `passenger_wsgi.py` created
+- [ ] Secret key generated for production
+- [ ] CORS origins configured for production frontend
+
+#### cPanel Setup
+- [ ] MySQL database created
+- [ ] Database user created and assigned
+- [ ] Python app created in cPanel
+- [ ] Virtual environment activated
+- [ ] Dependencies installed
+- [ ] Migrations run on production DB
+- [ ] Superuser created
+- [ ] Static files collected
+
+#### Post-Deployment
+- [ ] API endpoints accessible (test with browser/Postman)
+- [ ] Admin panel working (`/admin/`)
+- [ ] CORS working (frontend can connect)
+- [ ] Media uploads working
+- [ ] SSL certificate configured
+- [ ] Error logging configured
+
+### 11.13 Troubleshooting cPanel Deployment
+
+#### "Internal Server Error" (500)
+```bash
+# Check error logs
+tail -f /home/cpanelusername/logs/error.log
+
+# Or in cPanel: Metrics > Errors
+```
+
+#### "Module Not Found" Errors
+```bash
+# Ensure virtual environment is active
+source /home/cpanelusername/virtualenv/yourdomain.com/3.10/bin/activate
+pip list  # Check if package is installed
+pip install missing-package
+```
+
+#### Database Connection Errors
+1. Verify database credentials in cPanel MySQL
+2. Check user has permissions on database
+3. Ensure `HOST = 'localhost'` (not 127.0.0.1)
+4. Test connection:
+```python
+python manage.py dbshell
+```
+
+#### Static Files Not Loading
+1. Run `python manage.py collectstatic`
+2. Check `STATIC_ROOT` path exists
+3. Verify symbolic links or .htaccess rules
+4. Check file permissions (should be 644 for files, 755 for directories)
+
+#### CORS Errors
+1. Verify frontend URL in `CORS_ALLOWED_ORIGINS`
+2. Check for trailing slashes mismatch
+3. Restart Python app after changes
+
+#### Restart Application
+After making changes:
+1. Go to **Setup Python App** in cPanel
+2. Find your application
+3. Click **RESTART**
+
+Or via SSH:
+```bash
+touch /home/cpanelusername/yourdomain.com/ecommerce_backend/tmp/restart.txt
+```
+
+### 11.14 Directory Structure on cPanel
+
+```
+/home/cpanelusername/
+├── public_html/                    # Main website files
+│   ├── .htaccess                   # URL rewriting rules
+│   └── index.html                  # Or redirect to React app
+├── yourdomain.com/                 # Python app directory
+│   └── ecommerce_backend/
+│       ├── ecommerce_backend/
+│       │   ├── __init__.py
+│       │   ├── settings.py
+│       │   ├── settings_production.py
+│       │   ├── urls.py
+│       │   └── wsgi.py
+│       ├── store/
+│       ├── accounts/
+│       ├── media/
+│       ├── staticfiles/
+│       ├── passenger_wsgi.py
+│       ├── manage.py
+│       ├── requirements.txt
+│       └── .env
+├── virtualenv/
+│   └── yourdomain.com/
+│       └── 3.10/                   # Python virtual environment
+└── logs/
+    └── error.log
+```
+
+---
+
+## 12. Syncing Local and Production Databases
+
+### 12.1 Export from Local (XAMPP)
+
+```bash
+# Full database export
+mysqldump -u root -p shaheeda_ecommerce > backup_$(date +%Y%m%d).sql
+
+# Data only (for syncing content)
+mysqldump -u root -p --no-create-info shaheeda_ecommerce > data_only.sql
+
+# Specific tables
+mysqldump -u root -p shaheeda_ecommerce products categories > products_backup.sql
+```
+
+### 12.2 Import to Production (cPanel)
+
+Using phpMyAdmin:
+1. Open phpMyAdmin in cPanel
+2. Select your database
+3. Click **Import**
+4. Upload SQL file
+
+Using SSH:
+```bash
+mysql -u cpanelusername_dbuser -p cpanelusername_shaheeda_ecommerce < backup.sql
+```
+
+### 12.3 Export from Production
+
+```bash
+# SSH into cPanel
+ssh cpanelusername@yourdomain.com
+
+# Export
+mysqldump -u cpanelusername_dbuser -p cpanelusername_shaheeda_ecommerce > production_backup.sql
+
+# Download via SFTP or cPanel File Manager
+```
+
+---
+
 ## Production Checklist
 
-- [ ] Set `DEBUG = False` in settings
-- [ ] Configure `ALLOWED_HOSTS`
-- [ ] Set proper `CORS_ALLOWED_ORIGINS`
+- [ ] Set `DEBUG = False` in production settings
+- [ ] Configure `ALLOWED_HOSTS` with your domain(s)
+- [ ] Set proper `CORS_ALLOWED_ORIGINS` for frontend
 - [ ] Use environment variables for secrets
-- [ ] Configure proper database (PostgreSQL recommended)
-- [ ] Set up static files serving (whitenoise or nginx)
-- [ ] Enable HTTPS
+- [ ] Use MySQL (not SQLite) in production
+- [ ] Set up static files serving
+- [ ] Enable HTTPS (SSL certificate)
 - [ ] Configure proper logging
-- [ ] Set up backup strategy for database
+- [ ] Set up database backup strategy
+- [ ] Test all API endpoints
+- [ ] Test admin panel access
+- [ ] Test media file uploads
 
 ---
 
@@ -2636,6 +3130,16 @@ Ensure `MEDIA_ROOT` and `MEDIA_URL` are configured correctly.
 ### 4. 500 Errors
 Check Django server logs for detailed error messages.
 
+### 5. MySQL Connection Refused
+- Ensure XAMPP MySQL is running (local)
+- Check credentials match cPanel database user (production)
+- Verify user has database privileges
+
+### 6. Static Files 404
+- Run `python manage.py collectstatic`
+- Check `STATIC_ROOT` configuration
+- Verify .htaccess or symbolic links
+
 ---
 
-*This guide provides a complete backend structure. Adjust models and views based on your specific requirements.*
+*This guide provides a complete backend structure with local XAMPP development and cPanel production deployment. Adjust models, views, and hosting paths based on your specific requirements.*
