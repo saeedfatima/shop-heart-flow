@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,19 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, Edit, Package, Calendar, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Search, Eye, Edit, Package, Truck, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react";
 import { formatNaira } from "@/lib/currency";
-
-const mockOrders = [
-  { id: "ORD-001", customer: "John Doe", email: "john@example.com", total: 299.99, status: "delivered", date: "2024-01-15", items: 3 },
-  { id: "ORD-002", customer: "Jane Smith", email: "jane@example.com", total: 159.50, status: "shipped", date: "2024-01-14", items: 2 },
-  { id: "ORD-003", customer: "Bob Wilson", email: "bob@example.com", total: 89.99, status: "processing", date: "2024-01-14", items: 1 },
-  { id: "ORD-004", customer: "Alice Brown", email: "alice@example.com", total: 449.00, status: "pending", date: "2024-01-13", items: 5 },
-  { id: "ORD-005", customer: "Charlie Davis", email: "charlie@example.com", total: 199.99, status: "delivered", date: "2024-01-12", items: 2 },
-  { id: "ORD-006", customer: "Emma Johnson", email: "emma@example.com", total: 329.99, status: "shipped", date: "2024-01-11", items: 4 },
-  { id: "ORD-007", customer: "Michael Lee", email: "michael@example.com", total: 79.99, status: "cancelled", date: "2024-01-10", items: 1 },
-  { id: "ORD-008", customer: "Sarah White", email: "sarah@example.com", total: 549.00, status: "processing", date: "2024-01-09", items: 6 },
-];
+import { adminService, Order } from "@/lib/apiServices";
+import { toast } from "@/hooks/use-toast";
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -44,14 +35,72 @@ const getStatusColor = (status: string) => {
 const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
-  const filteredOrders = mockOrders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await adminService.getOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load orders",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (orderId: number, newStatus: Order['status']) => {
+    setUpdatingOrderId(orderId);
+    try {
+      const { data, error } = await adminService.updateOrderStatus(orderId, newStatus);
+      if (error) {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive",
+        });
+      } else {
+        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+        toast({
+          title: "Success",
+          description: `Order status updated to ${newStatus}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Calculate stats from orders
+  const orderStats = {
+    total: orders.length,
+    processing: orders.filter(o => o.status === 'processing').length,
+    shipped: orders.filter(o => o.status === 'shipped').length,
+    delivered: orders.filter(o => o.status === 'delivered').length,
+  };
 
   return (
     <motion.div
@@ -71,7 +120,7 @@ const AdminOrders = () => {
             <div className="flex items-center gap-3">
               <Package className="h-8 w-8 text-muted-foreground" />
               <div>
-                <p className="text-2xl font-bold">156</p>
+                <p className="text-2xl font-bold">{loading ? '-' : orderStats.total}</p>
                 <p className="text-xs text-muted-foreground">Total Orders</p>
               </div>
             </div>
@@ -82,7 +131,7 @@ const AdminOrders = () => {
             <div className="flex items-center gap-3">
               <Clock className="h-8 w-8 text-yellow-500" />
               <div>
-                <p className="text-2xl font-bold">23</p>
+                <p className="text-2xl font-bold">{loading ? '-' : orderStats.processing}</p>
                 <p className="text-xs text-muted-foreground">Processing</p>
               </div>
             </div>
@@ -93,7 +142,7 @@ const AdminOrders = () => {
             <div className="flex items-center gap-3">
               <Truck className="h-8 w-8 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold">18</p>
+                <p className="text-2xl font-bold">{loading ? '-' : orderStats.shipped}</p>
                 <p className="text-xs text-muted-foreground">Shipped</p>
               </div>
             </div>
@@ -104,7 +153,7 @@ const AdminOrders = () => {
             <div className="flex items-center gap-3">
               <CheckCircle className="h-8 w-8 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">112</p>
+                <p className="text-2xl font-bold">{loading ? '-' : orderStats.delivered}</p>
                 <p className="text-xs text-muted-foreground">Delivered</p>
               </div>
             </div>
@@ -147,46 +196,73 @@ const AdminOrders = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell className="hidden md:table-cell">{order.email}</TableCell>
-                  <TableCell>{order.items}</TableCell>
-                  <TableCell>{formatNaira(order.total)}</TableCell>
-                  <TableCell>
-                    <Badge className={`${getStatusColor(order.status)} flex items-center gap-1 w-fit`}>
-                      {getStatusIcon(order.status)}
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No orders found
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.order_number}</TableCell>
+                    <TableCell>{order.items?.length || 0}</TableCell>
+                    <TableCell>{formatNaira(order.total)}</TableCell>
+                    <TableCell>
+                      <Badge className={`${getStatusColor(order.status)} flex items-center gap-1 w-fit`}>
+                        {getStatusIcon(order.status)}
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Select 
+                          value={order.status} 
+                          onValueChange={(value) => handleStatusUpdate(order.id, value as Order['status'])}
+                          disabled={updatingOrderId === order.id}
+                        >
+                          <SelectTrigger className="w-32 h-8 text-xs">
+                            {updatingOrderId === order.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <SelectValue />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="processing">Processing</SelectItem>
+                            <SelectItem value="shipped">Shipped</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </motion.div>

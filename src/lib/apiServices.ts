@@ -1,7 +1,7 @@
-// API Services - Typed functions for all Django backend endpoints
+// API Services - Typed functions for all PHP backend endpoints
 import { api, ApiResponse, ApiUser } from './api';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -218,7 +218,7 @@ export const normalizeCategory = (c: any): Category => ({
 
 export const categoryService = {
   async getAll(): Promise<Category[]> {
-    const response = await api.get<Category[]>('/categories/');
+    const response = await api.get<Category[]>('/categories');
     if (response.data) {
       return response.data.map(normalizeCategory);
     }
@@ -226,7 +226,7 @@ export const categoryService = {
   },
 
   async getBySlug(slug: string): Promise<Category | null> {
-    const response = await api.get<Category>(`/categories/${slug}/`);
+    const response = await api.get<Category>(`/categories/${slug}`);
     return response.data ? normalizeCategory(response.data) : null;
   },
 };
@@ -251,7 +251,7 @@ export const productService = {
     if (filters?.ordering) params.set('ordering', filters.ordering);
 
     const queryString = params.toString();
-    const endpoint = `/products/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/products${queryString ? `?${queryString}` : ''}`;
     const response = await api.get<PaginatedResponse<any>>(endpoint);
 
     if (response.data) {
@@ -264,7 +264,7 @@ export const productService = {
   },
 
   async getFeatured(): Promise<Product[]> {
-    const response = await api.get<any[]>('/products/featured/');
+    const response = await api.get<any[]>('/products/featured');
     if (response.data) {
       return response.data.map(normalizeProduct);
     }
@@ -272,17 +272,17 @@ export const productService = {
   },
 
   async getById(id: string | number): Promise<Product | null> {
-    const response = await api.get<any>(`/products/${id}/`);
+    const response = await api.get<any>(`/products/${id}`);
     return response.data ? normalizeProduct(response.data) : null;
   },
 
   async getReviews(productId: string | number): Promise<Review[]> {
-    const response = await api.get<Review[]>(`/products/${productId}/reviews/`);
+    const response = await api.get<Review[]>(`/products/${productId}/reviews`);
     return response.data || [];
   },
 
   async createReview(productId: string | number, data: { rating: number; title: string; comment: string }): Promise<ApiResponse<Review>> {
-    return api.post<Review>(`/products/${productId}/reviews/create/`, data);
+    return api.post<Review>(`/products/${productId}/reviews/create`, data);
   },
 };
 
@@ -292,7 +292,7 @@ export const productService = {
 
 export const reviewService = {
   async markHelpful(reviewId: number): Promise<ApiResponse<{ helpful_count: number }>> {
-    return api.post<{ helpful_count: number }>(`/reviews/${reviewId}/helpful/`, {});
+    return api.post<{ helpful_count: number }>(`/reviews/${reviewId}/helpful`, {});
   },
 };
 
@@ -302,17 +302,17 @@ export const reviewService = {
 
 export const orderService = {
   async getAll(): Promise<Order[]> {
-    const response = await api.get<Order[]>('/orders/');
+    const response = await api.get<Order[]>('/orders');
     return response.data || [];
   },
 
   async getById(id: number): Promise<Order | null> {
-    const response = await api.get<Order>(`/orders/${id}/`);
+    const response = await api.get<Order>(`/orders/${id}`);
     return response.data || null;
   },
 
   async create(data: OrderInput): Promise<ApiResponse<Order>> {
-    return api.post<Order>('/orders/create/', data);
+    return api.post<Order>('/orders/create', data);
   },
 };
 
@@ -322,20 +322,20 @@ export const orderService = {
 
 export const addressService = {
   async getAll(): Promise<Address[]> {
-    const response = await api.get<Address[]>('/addresses/');
+    const response = await api.get<Address[]>('/addresses');
     return response.data || [];
   },
 
   async create(data: AddressInput): Promise<ApiResponse<Address>> {
-    return api.post<Address>('/addresses/create/', data);
+    return api.post<Address>('/addresses/create', data);
   },
 
   async update(id: number, data: Partial<AddressInput>): Promise<ApiResponse<Address>> {
-    return api.put<Address>(`/addresses/${id}/`, data);
+    return api.put<Address>(`/addresses/${id}`, data);
   },
 
   async delete(id: number): Promise<ApiResponse<void>> {
-    return api.delete<void>(`/addresses/${id}/delete/`);
+    return api.delete<void>(`/addresses/${id}/delete`);
   },
 };
 
@@ -345,16 +345,16 @@ export const addressService = {
 
 export const wishlistService = {
   async getAll(): Promise<WishlistItem[]> {
-    const response = await api.get<WishlistItem[]>('/wishlist/');
+    const response = await api.get<WishlistItem[]>('/wishlist');
     return response.data || [];
   },
 
   async add(productId: number): Promise<ApiResponse<WishlistItem>> {
-    return api.post<WishlistItem>('/wishlist/add/', { product_id: productId });
+    return api.post<WishlistItem>('/wishlist/add', { product_id: productId });
   },
 
   async remove(productId: number): Promise<ApiResponse<void>> {
-    return api.delete<void>(`/wishlist/${productId}/remove/`);
+    return api.delete<void>(`/wishlist/${productId}/remove`);
   },
 };
 
@@ -364,16 +364,16 @@ export const wishlistService = {
 
 export const paymentMethodService = {
   async getAll(): Promise<PaymentMethod[]> {
-    const response = await api.get<PaymentMethod[]>('/payment-methods/');
+    const response = await api.get<PaymentMethod[]>('/payment-methods');
     return response.data || [];
   },
 
   async create(data: PaymentMethodInput): Promise<ApiResponse<PaymentMethod>> {
-    return api.post<PaymentMethod>('/payment-methods/create/', data);
+    return api.post<PaymentMethod>('/payment-methods/create', data);
   },
 
   async delete(id: number): Promise<ApiResponse<void>> {
-    return api.delete<void>(`/payment-methods/${id}/delete/`);
+    return api.delete<void>(`/payment-methods/${id}/delete`);
   },
 };
 
@@ -383,16 +383,16 @@ export const paymentMethodService = {
 
 export const adminService = {
   async getStats(): Promise<AdminStats | null> {
-    const response = await api.get<AdminStats>('/admin/stats/');
+    const response = await api.get<AdminStats>('/admin/stats');
     return response.data || null;
   },
 
   async getOrders(): Promise<Order[]> {
-    const response = await api.get<Order[]>('/admin/orders/');
+    const response = await api.get<Order[]>('/admin/orders');
     return response.data || [];
   },
 
   async updateOrderStatus(orderId: number, status: Order['status']): Promise<ApiResponse<Order>> {
-    return api.patch<Order>(`/admin/orders/${orderId}/status/`, { status });
+    return api.patch<Order>(`/admin/orders/${orderId}/status`, { status });
   },
 };
