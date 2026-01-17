@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Navigate, Routes, Route } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { useAuth } from "@/context/AuthContext";
 import { formatNaira, formatAdminCurrency } from "@/lib/currency";
+import { adminService, Order } from "@/lib/apiServices";
 import { 
   Package, 
   ShoppingCart, 
@@ -21,7 +22,8 @@ import {
   Trash2,
   Plus,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Loader2
 } from "lucide-react";
 
 // Import sub-pages
@@ -32,40 +34,16 @@ import AdminCategories from "@/pages/admin/AdminCategories";
 import AdminAnalytics from "@/pages/admin/AdminAnalytics";
 import AdminSettings from "@/pages/admin/AdminSettings";
 
-// Mock data
-const mockStats = {
-  totalRevenue: 45231.89,
-  revenueChange: 20.1,
-  totalOrders: 2350,
-  ordersChange: 15.3,
-  totalProducts: 124,
-  productsChange: 5.2,
-  totalCustomers: 1893,
-  customersChange: 12.5,
-};
-
-const mockRecentOrders = [
-  { id: "ORD-001", customer: "John Doe", email: "john@example.com", total: 299.99, status: "delivered", date: "2024-01-15" },
-  { id: "ORD-002", customer: "Jane Smith", email: "jane@example.com", total: 159.50, status: "shipped", date: "2024-01-14" },
-  { id: "ORD-003", customer: "Bob Wilson", email: "bob@example.com", total: 89.99, status: "processing", date: "2024-01-14" },
-  { id: "ORD-004", customer: "Alice Brown", email: "alice@example.com", total: 449.00, status: "pending", date: "2024-01-13" },
-  { id: "ORD-005", customer: "Charlie Davis", email: "charlie@example.com", total: 199.99, status: "delivered", date: "2024-01-12" },
-];
-
-const mockProducts = [
-  { id: "PRD-001", name: "Classic White Tee", category: "T-Shirts", price: 29.99, stock: 150, status: "active" },
-  { id: "PRD-002", name: "Denim Jacket", category: "Outerwear", price: 89.99, stock: 45, status: "active" },
-  { id: "PRD-003", name: "Summer Dress", category: "Dresses", price: 59.99, stock: 0, status: "out_of_stock" },
-  { id: "PRD-004", name: "Leather Belt", category: "Accessories", price: 39.99, stock: 78, status: "active" },
-  { id: "PRD-005", name: "Canvas Sneakers", category: "Footwear", price: 69.99, stock: 12, status: "low_stock" },
-];
-
-const mockCustomers = [
-  { id: "USR-001", name: "John Doe", email: "john@example.com", orders: 12, spent: 1299.99, joined: "2023-06-15" },
-  { id: "USR-002", name: "Jane Smith", email: "jane@example.com", orders: 8, spent: 849.50, joined: "2023-08-22" },
-  { id: "USR-003", name: "Bob Wilson", email: "bob@example.com", orders: 5, spent: 429.99, joined: "2023-10-10" },
-  { id: "USR-004", name: "Alice Brown", email: "alice@example.com", orders: 15, spent: 2150.00, joined: "2023-03-05" },
-];
+interface AdminStats {
+  total_revenue: number;
+  revenue_change: number;
+  total_orders: number;
+  orders_change: number;
+  total_products: number;
+  products_change: number;
+  total_customers: number;
+  customers_change: number;
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -80,13 +58,14 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const StatCard = ({ title, value, change, icon: Icon, showDual = false, nairaValue }: { 
+const StatCard = ({ title, value, change, icon: Icon, showDual = false, nairaValue, loading = false }: { 
   title: string; 
   value: string | number; 
   change: number; 
   icon: React.ElementType;
   showDual?: boolean;
   nairaValue?: number;
+  loading?: boolean;
 }) => {
   const dualCurrency = nairaValue ? formatAdminCurrency(nairaValue) : null;
   
@@ -97,7 +76,12 @@ const StatCard = ({ title, value, change, icon: Icon, showDual = false, nairaVal
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        {showDual && dualCurrency ? (
+        {loading ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm text-muted-foreground">Loading...</span>
+          </div>
+        ) : showDual && dualCurrency ? (
           <div>
             <div className="text-2xl font-bold">{dualCurrency.naira}</div>
             <div className="text-sm text-muted-foreground">{dualCurrency.usd}</div>
@@ -117,6 +101,41 @@ const StatCard = ({ title, value, change, icon: Icon, showDual = false, nairaVal
 const DashboardOverview = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { user } = useAuth();
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [statsData, ordersData] = await Promise.all([
+          adminService.getStats(),
+          adminService.getOrders(),
+        ]);
+        setStats(statsData);
+        setRecentOrders(ordersData.slice(0, 5)); // Get first 5 orders
+      } catch (error) {
+        console.error('Failed to fetch admin data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Fallback mock data if API fails
+  const displayStats = stats || {
+    total_revenue: 0,
+    revenue_change: 0,
+    total_orders: 0,
+    orders_change: 0,
+    total_products: 0,
+    products_change: 0,
+    total_customers: 0,
+    customers_change: 0,
+  };
 
   return (
     <motion.div
@@ -130,17 +149,41 @@ const DashboardOverview = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard title="Total Revenue" value="" change={mockStats.revenueChange} icon={DollarSign} showDual={true} nairaValue={mockStats.totalRevenue} />
-        <StatCard title="Total Orders" value={mockStats.totalOrders} change={mockStats.ordersChange} icon={ShoppingCart} />
-        <StatCard title="Products" value={mockStats.totalProducts} change={mockStats.productsChange} icon={Package} />
-        <StatCard title="Customers" value={mockStats.totalCustomers} change={mockStats.customersChange} icon={Users} />
+        <StatCard 
+          title="Total Revenue" 
+          value="" 
+          change={displayStats.revenue_change} 
+          icon={DollarSign} 
+          showDual={true} 
+          nairaValue={displayStats.total_revenue} 
+          loading={loading}
+        />
+        <StatCard 
+          title="Total Orders" 
+          value={displayStats.total_orders} 
+          change={displayStats.orders_change} 
+          icon={ShoppingCart} 
+          loading={loading}
+        />
+        <StatCard 
+          title="Products" 
+          value={displayStats.total_products} 
+          change={displayStats.products_change} 
+          icon={Package} 
+          loading={loading}
+        />
+        <StatCard 
+          title="Customers" 
+          value={displayStats.total_customers} 
+          change={displayStats.customers_change} 
+          icon={Users} 
+          loading={loading}
+        />
       </div>
 
       <Tabs defaultValue="orders" className="space-y-4">
         <TabsList className="bg-card">
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
+          <TabsTrigger value="orders">Recent Orders</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders">
@@ -158,108 +201,46 @@ const DashboardOverview = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead className="hidden md:table-cell">Email</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="hidden sm:table-cell">Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockRecentOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.customer}</TableCell>
-                      <TableCell className="hidden md:table-cell">{order.email}</TableCell>
-                      <TableCell>{formatNaira(order.total)}</TableCell>
-                      <TableCell><Badge className={getStatusColor(order.status)}>{order.status}</Badge></TableCell>
-                      <TableCell className="hidden sm:table-cell">{order.date}</TableCell>
-                      <TableCell className="text-right"><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></TableCell>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : recentOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No orders found
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="hidden sm:table-cell">Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="products">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div><CardTitle>Products</CardTitle><CardDescription>Manage your product inventory</CardDescription></div>
-                <Button className="w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Product</Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Category</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead className="hidden sm:table-cell">Stock</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.id}</TableCell>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell className="hidden md:table-cell">{product.category}</TableCell>
-                      <TableCell>{formatNaira(product.price)}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
-                      <TableCell><Badge className={getStatusColor(product.status)}>{product.status.replace('_', ' ')}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="customers">
-          <Card>
-            <CardHeader><CardTitle>Customers</CardTitle><CardDescription>View and manage customer accounts</CardDescription></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Email</TableHead>
-                    <TableHead>Orders</TableHead>
-                    <TableHead className="hidden sm:table-cell">Total Spent</TableHead>
-                    <TableHead className="hidden lg:table-cell">Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.id}</TableCell>
-                      <TableCell>{customer.name}</TableCell>
-                      <TableCell className="hidden md:table-cell">{customer.email}</TableCell>
-                      <TableCell>{customer.orders}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{formatNaira(customer.spent)}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{customer.joined}</TableCell>
-                      <TableCell className="text-right"><Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {recentOrders
+                      .filter(order => 
+                        order.order_number.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">{order.order_number}</TableCell>
+                          <TableCell>{formatNaira(order.total)}</TableCell>
+                          <TableCell><Badge className={getStatusColor(order.status)}>{order.status}</Badge></TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

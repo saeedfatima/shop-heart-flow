@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Camera, Mail, Phone, User, Lock, Shield, Upload, X, Loader2, MapPin, Calendar, Briefcase, Link2, MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +20,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
+
 const UserProfile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -28,18 +31,20 @@ const UserProfile = () => {
     firstName: user?.first_name || "",
     lastName: user?.last_name || "",
     email: user?.email || "",
-    phone: user?.phone || "+1 (555) 123-4567",
-    bio: "",
-    location: "New York, USA",
-    occupation: "Software Developer",
-    website: "",
-    dateOfBirth: "1990-01-15",
-    tiktok: "",
-    whatsapp: "",
-    instagram: "",
+    phone: user?.phone || "",
+    bio: user?.bio || "",
+    location: user?.location || "",
+    occupation: user?.occupation || "",
+    dateOfBirth: user?.date_of_birth || "",
+    tiktok: user?.tiktok || "",
+    whatsapp: user?.whatsapp || "",
+    instagram: user?.instagram || "",
   });
 
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar || null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(
+    user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${API_BASE_URL}${user.avatar}`) : null
+  );
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -57,66 +62,100 @@ const UserProfile = () => {
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Invalid file type",
-        description: "Please upload an image file (JPG, PNG, GIF)",
+        description: "Please upload an image file (JPG, PNG, GIF, WEBP)",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (max 5MB as per PHP API)
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please upload an image smaller than 2MB",
+        description: "Please upload an image smaller than 5MB",
         variant: "destructive",
       });
       return;
     }
 
-    setIsUploading(true);
+    setAvatarFile(file);
 
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setAvatarPreview(reader.result as string);
-      setIsUploading(false);
-      toast({
-        title: "Photo uploaded",
-        description: "Your new profile photo has been set.",
-      });
     };
     reader.readAsDataURL(file);
   };
 
   const handleRemoveAvatar = () => {
     setAvatarPreview(null);
+    setAvatarFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    toast({
-      title: "Photo removed",
-      description: "Your profile photo has been removed.",
-    });
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    updateProfile({
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      phone: formData.phone,
-      avatar: avatarPreview || undefined,
-    });
-    
-    setIsSaving(false);
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully.",
-    });
+    try {
+      // Upload avatar if changed
+      if (avatarFile) {
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('avatar', avatarFile);
+        
+        const { error: uploadError } = await api.uploadFile('/auth/user/avatar', formData);
+        
+        if (uploadError) {
+          toast({
+            title: "Avatar upload failed",
+            description: uploadError,
+            variant: "destructive",
+          });
+        } else {
+          setAvatarFile(null);
+        }
+        setIsUploading(false);
+      }
+
+      // Update profile data
+      const result = await updateProfile({
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone,
+        bio: formData.bio,
+        location: formData.location,
+        occupation: formData.occupation,
+        date_of_birth: formData.dateOfBirth,
+        tiktok: formData.tiktok,
+        whatsapp: formData.whatsapp,
+        instagram: formData.instagram,
+      });
+
+      if (result.success) {
+        await refreshUser();
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+        });
+      } else {
+        toast({
+          title: "Update failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePasswordChange = async () => {
@@ -138,16 +177,15 @@ const UserProfile = () => {
       return;
     }
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Note: Password change endpoint would need to be added to PHP API
+    // For now, show a message that this feature requires backend implementation
+    toast({
+      title: "Password change",
+      description: "Password change functionality requires additional backend setup.",
+    });
 
     setShowPasswordDialog(false);
     setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    
-    toast({
-      title: "Password changed",
-      description: "Your password has been updated successfully.",
-    });
   };
 
   return (
@@ -224,7 +262,7 @@ const UserProfile = () => {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  JPG, GIF or PNG. Max size 2MB.
+                  JPG, GIF, PNG or WEBP. Max size 5MB.
                 </p>
               </div>
             </div>
@@ -287,9 +325,10 @@ const UserProfile = () => {
                   id="email" 
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="your@email.com"
+                  disabled
+                  className="bg-muted"
                 />
+                <p className="text-xs text-muted-foreground">Email cannot be changed</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone" className="flex items-center gap-2">
@@ -300,7 +339,7 @@ const UserProfile = () => {
                   id="phone" 
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+234 xxx xxx xxxx"
                 />
               </div>
             </div>
@@ -394,7 +433,7 @@ const UserProfile = () => {
                 id="whatsapp" 
                 value={formData.whatsapp}
                 onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                placeholder="+1 234 567 8900"
+                placeholder="+234 xxx xxx xxxx"
               />
             </div>
 
@@ -430,7 +469,7 @@ const UserProfile = () => {
                 <Lock className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Password</p>
-                  <p className="text-sm text-muted-foreground">Last changed 30 days ago</p>
+                  <p className="text-sm text-muted-foreground">Keep your account secure</p>
                 </div>
               </div>
               <Button variant="outline" onClick={() => setShowPasswordDialog(true)}>
@@ -460,7 +499,9 @@ const UserProfile = () => {
             <div className="flex items-center justify-between p-4 bg-destructive/10 rounded-lg">
               <div>
                 <p className="font-medium">Delete Account</p>
-                <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data
+                </p>
               </div>
               <Button variant="destructive">Delete Account</Button>
             </div>
@@ -474,7 +515,7 @@ const UserProfile = () => {
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
-              Enter your current password and choose a new one.
+              Enter your current password and choose a new one
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -485,7 +526,6 @@ const UserProfile = () => {
                 type="password"
                 value={passwordData.currentPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                placeholder="Enter current password"
               />
             </div>
             <div className="space-y-2">
@@ -495,7 +535,6 @@ const UserProfile = () => {
                 type="password"
                 value={passwordData.newPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                placeholder="Enter new password"
               />
             </div>
             <div className="space-y-2">
@@ -505,7 +544,6 @@ const UserProfile = () => {
                 type="password"
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                placeholder="Confirm new password"
               />
             </div>
           </div>

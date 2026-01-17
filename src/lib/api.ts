@@ -58,7 +58,7 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/auth/token/refresh/`, {
+      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),
@@ -127,7 +127,7 @@ class ApiClient {
       message: string;
       user: ApiUser;
       tokens: TokenPair;
-    }>('/auth/login/', {
+    }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -151,7 +151,7 @@ class ApiClient {
       message: string;
       user: ApiUser;
       tokens: TokenPair;
-    }>('/auth/register/', {
+    }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({
         email: data.email,
@@ -173,7 +173,7 @@ class ApiClient {
     const refreshToken = localStorage.getItem('refreshToken');
 
     if (refreshToken) {
-      this.request('/auth/logout/', {
+      this.request('/auth/logout', {
         method: 'POST',
         body: JSON.stringify({ refresh: refreshToken }),
       });
