@@ -6,39 +6,15 @@ import { motion } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Button } from '@/components/ui/button';
-
-/* =======================
-   API CONFIG
-======================= */
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost/api';
-
-/* =======================
-   NORMALIZER
-======================= */
-
-const normalizeProduct = (p: any) => ({
-  ...p,
-  price: Number(p.price),
-  originalPrice: p.original_price ? Number(p.original_price) : undefined,
-  reviewCount: p.review_count,
-  rating: Number(p.rating),
-  images: (p.images || []).map((img: string) =>
-    img.startsWith('http') ? img : `${API_BASE_URL.replace('/api', '')}${img}`
-  ),
-});
-
-/* =======================
-   COMPONENT
-======================= */
+import { categoryService, productService, Product, Category } from '@/lib/apiServices';
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeCategory = searchParams.get('category') || 'all';
 
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [sortBy, setSortBy] = useState('featured');
@@ -52,15 +28,13 @@ const Shop = () => {
   ======================= */
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/categories`)
-      .then(res => res.json())
-      .then(data => {
-        setCategories([{ name: 'All', slug: 'all' }, ...data]);
-      })
-      .catch(() => {
-        // Server not available - use empty categories
-        setCategories([{ name: 'All', slug: 'all' }]);
-      });
+    const fetchCategories = async () => {
+      const data = await categoryService.getAll();
+      // Add 'All' category at the beginning
+      const allCategory: Category = { id: 0, name: 'All', slug: 'all' };
+      setCategories([allCategory, ...data.filter(c => c.slug !== 'all')]);
+    };
+    fetchCategories();
   }, []);
 
   /* =======================
@@ -68,29 +42,27 @@ const Shop = () => {
   ======================= */
 
   useEffect(() => {
-    setLoading(true);
+    const fetchProducts = async () => {
+      setLoading(true);
 
-    const params = new URLSearchParams();
-    params.set('page', String(page));
-    if (activeCategory !== 'all') params.set('category', activeCategory);
-    if (search) params.set('search', search);
-    if (sortBy === 'price-low') params.set('ordering', 'price');
-    else if (sortBy === 'price-high') params.set('ordering', '-price');
-    else if (sortBy === 'newest') params.set('ordering', '-id');
+      let ordering: string | undefined;
+      if (sortBy === 'price-low') ordering = 'price';
+      else if (sortBy === 'price-high') ordering = '-price';
+      else if (sortBy === 'newest') ordering = '-id';
 
-    fetch(`${API_BASE_URL}/products?${params.toString()}`)
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data.results?.map(normalizeProduct) || []);
-        setCount(data.count || 0);
-        setLoading(false);
-      })
-      .catch(() => {
-        // Server not available - show empty state
-        setProducts([]);
-        setCount(0);
-        setLoading(false);
+      const data = await productService.getAll({
+        page,
+        category: activeCategory !== 'all' ? activeCategory : undefined,
+        search: search || undefined,
+        ordering,
       });
+
+      setProducts(data.results);
+      setCount(data.count);
+      setLoading(false);
+    };
+
+    fetchProducts();
   }, [activeCategory, sortBy, page, search]);
 
   /* =======================

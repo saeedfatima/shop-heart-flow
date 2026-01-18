@@ -1,5 +1,7 @@
 // API Services - Typed functions for all PHP backend endpoints
+// Falls back to mock data when API is unavailable (e.g., in Lovable preview)
 import { api, ApiResponse, ApiUser } from './api';
+import { products as mockProducts, categories as mockCategories, getFeaturedProducts, getProductById } from '@/data/products';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
 
@@ -189,7 +191,7 @@ export const normalizeProduct = (p: any): Product => ({
   name: p.name,
   slug: p.slug,
   price: Number(p.price),
-  originalPrice: p.original_price ? Number(p.original_price) : undefined,
+  originalPrice: p.original_price ? Number(p.original_price) : p.originalPrice,
   description: p.description || '',
   category: p.category?.name || p.category || '',
   images: (p.images || []).map((img: any) => {
@@ -201,11 +203,11 @@ export const normalizeProduct = (p: any): Product => ({
   inStock: p.in_stock ?? p.inStock ?? true,
   featured: p.featured || false,
   rating: p.rating ? Number(p.rating) : undefined,
-  reviewCount: p.review_count,
+  reviewCount: p.review_count ?? p.reviewCount,
 });
 
 export const normalizeCategory = (c: any): Category => ({
-  id: c.id,
+  id: c.id || 0,
   name: c.name,
   slug: c.slug,
   description: c.description,
@@ -218,16 +220,30 @@ export const normalizeCategory = (c: any): Category => ({
 
 export const categoryService = {
   async getAll(): Promise<Category[]> {
-    const response = await api.get<Category[]>('/categories');
-    if (response.data) {
-      return response.data.map(normalizeCategory);
+    try {
+      const response = await api.get<Category[]>('/categories');
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map(normalizeCategory);
+      }
+    } catch (error) {
+      console.warn('API unavailable, using mock categories');
     }
-    return [];
+    // Fallback to mock data
+    return mockCategories.map((c, index) => normalizeCategory({ ...c, id: index + 1 }));
   },
 
   async getBySlug(slug: string): Promise<Category | null> {
-    const response = await api.get<Category>(`/categories/${slug}`);
-    return response.data ? normalizeCategory(response.data) : null;
+    try {
+      const response = await api.get<Category>(`/categories/${slug}`);
+      if (response.data) {
+        return normalizeCategory(response.data);
+      }
+    } catch (error) {
+      console.warn('API unavailable, using mock category');
+    }
+    // Fallback to mock data
+    const mockCat = mockCategories.find(c => c.slug === slug);
+    return mockCat ? normalizeCategory({ ...mockCat, id: mockCategories.indexOf(mockCat) + 1 }) : null;
   },
 };
 
@@ -244,41 +260,86 @@ export interface ProductFilters {
 
 export const productService = {
   async getAll(filters?: ProductFilters): Promise<PaginatedResponse<Product>> {
-    const params = new URLSearchParams();
-    if (filters?.page) params.set('page', String(filters.page));
-    if (filters?.category) params.set('category', filters.category);
-    if (filters?.search) params.set('search', filters.search);
-    if (filters?.ordering) params.set('ordering', filters.ordering);
+    try {
+      const params = new URLSearchParams();
+      if (filters?.page) params.set('page', String(filters.page));
+      if (filters?.category) params.set('category', filters.category);
+      if (filters?.search) params.set('search', filters.search);
+      if (filters?.ordering) params.set('ordering', filters.ordering);
 
-    const queryString = params.toString();
-    const endpoint = `/products${queryString ? `?${queryString}` : ''}`;
-    const response = await api.get<PaginatedResponse<any>>(endpoint);
+      const queryString = params.toString();
+      const endpoint = `/products${queryString ? `?${queryString}` : ''}`;
+      const response = await api.get<PaginatedResponse<any>>(endpoint);
 
-    if (response.data) {
-      return {
-        ...response.data,
-        results: response.data.results.map(normalizeProduct),
-      };
+      if (response.data && response.data.results) {
+        return {
+          ...response.data,
+          results: response.data.results.map(normalizeProduct),
+        };
+      }
+    } catch (error) {
+      console.warn('API unavailable, using mock products');
     }
-    return { count: 0, next: null, previous: null, results: [] };
+    
+    // Fallback to mock data
+    let filteredProducts = [...mockProducts];
+    
+    if (filters?.category && filters.category !== 'all') {
+      filteredProducts = filteredProducts.filter(
+        p => p.category.toLowerCase() === filters.category!.toLowerCase()
+      );
+    }
+    
+    if (filters?.search) {
+      const search = filters.search.toLowerCase();
+      filteredProducts = filteredProducts.filter(
+        p => p.name.toLowerCase().includes(search) || p.description.toLowerCase().includes(search)
+      );
+    }
+    
+    return {
+      count: filteredProducts.length,
+      next: null,
+      previous: null,
+      results: filteredProducts.map(normalizeProduct),
+    };
   },
 
   async getFeatured(): Promise<Product[]> {
-    const response = await api.get<any[]>('/products/featured');
-    if (response.data) {
-      return response.data.map(normalizeProduct);
+    try {
+      const response = await api.get<any[]>('/products/featured');
+      if (response.data && Array.isArray(response.data)) {
+        return response.data.map(normalizeProduct);
+      }
+    } catch (error) {
+      console.warn('API unavailable, using mock featured products');
     }
-    return [];
+    // Fallback to mock data
+    return getFeaturedProducts().map(normalizeProduct);
   },
 
   async getById(id: string | number): Promise<Product | null> {
-    const response = await api.get<any>(`/products/${id}`);
-    return response.data ? normalizeProduct(response.data) : null;
+    try {
+      const response = await api.get<any>(`/products/${id}`);
+      if (response.data) {
+        return normalizeProduct(response.data);
+      }
+    } catch (error) {
+      console.warn('API unavailable, using mock product');
+    }
+    // Fallback to mock data
+    const mockProduct = getProductById(String(id));
+    return mockProduct ? normalizeProduct(mockProduct) : null;
   },
 
   async getReviews(productId: string | number): Promise<Review[]> {
-    const response = await api.get<Review[]>(`/products/${productId}/reviews`);
-    return response.data || [];
+    try {
+      const response = await api.get<Review[]>(`/products/${productId}/reviews`);
+      return response.data || [];
+    } catch (error) {
+      console.warn('API unavailable for reviews');
+      return [];
+    }
   },
 
   async createReview(productId: string | number, data: { rating: number; title: string; comment: string }): Promise<ApiResponse<Review>> {
@@ -302,13 +363,23 @@ export const reviewService = {
 
 export const orderService = {
   async getAll(): Promise<Order[]> {
-    const response = await api.get<Order[]>('/orders');
-    return response.data || [];
+    try {
+      const response = await api.get<Order[]>('/orders');
+      return response.data || [];
+    } catch (error) {
+      console.warn('API unavailable for orders');
+      return [];
+    }
   },
 
   async getById(id: number): Promise<Order | null> {
-    const response = await api.get<Order>(`/orders/${id}`);
-    return response.data || null;
+    try {
+      const response = await api.get<Order>(`/orders/${id}`);
+      return response.data || null;
+    } catch (error) {
+      console.warn('API unavailable for order detail');
+      return null;
+    }
   },
 
   async create(data: OrderInput): Promise<ApiResponse<Order>> {
@@ -322,8 +393,13 @@ export const orderService = {
 
 export const addressService = {
   async getAll(): Promise<Address[]> {
-    const response = await api.get<Address[]>('/addresses');
-    return response.data || [];
+    try {
+      const response = await api.get<Address[]>('/addresses');
+      return response.data || [];
+    } catch (error) {
+      console.warn('API unavailable for addresses');
+      return [];
+    }
   },
 
   async create(data: AddressInput): Promise<ApiResponse<Address>> {
@@ -345,8 +421,13 @@ export const addressService = {
 
 export const wishlistService = {
   async getAll(): Promise<WishlistItem[]> {
-    const response = await api.get<WishlistItem[]>('/wishlist');
-    return response.data || [];
+    try {
+      const response = await api.get<WishlistItem[]>('/wishlist');
+      return response.data || [];
+    } catch (error) {
+      console.warn('API unavailable for wishlist');
+      return [];
+    }
   },
 
   async add(productId: number): Promise<ApiResponse<WishlistItem>> {
@@ -364,8 +445,13 @@ export const wishlistService = {
 
 export const paymentMethodService = {
   async getAll(): Promise<PaymentMethod[]> {
-    const response = await api.get<PaymentMethod[]>('/payment-methods');
-    return response.data || [];
+    try {
+      const response = await api.get<PaymentMethod[]>('/payment-methods');
+      return response.data || [];
+    } catch (error) {
+      console.warn('API unavailable for payment methods');
+      return [];
+    }
   },
 
   async create(data: PaymentMethodInput): Promise<ApiResponse<PaymentMethod>> {
@@ -383,13 +469,33 @@ export const paymentMethodService = {
 
 export const adminService = {
   async getStats(): Promise<AdminStats | null> {
-    const response = await api.get<AdminStats>('/admin/stats');
-    return response.data || null;
+    try {
+      const response = await api.get<AdminStats>('/admin/stats');
+      return response.data || null;
+    } catch (error) {
+      console.warn('API unavailable for admin stats');
+      // Return mock stats for preview
+      return {
+        total_revenue: 45250,
+        revenue_change: 12.5,
+        total_orders: 156,
+        orders_change: 8.2,
+        total_products: mockProducts.length,
+        products_change: 3.1,
+        total_customers: 892,
+        customers_change: 15.3,
+      };
+    }
   },
 
   async getOrders(): Promise<Order[]> {
-    const response = await api.get<Order[]>('/admin/orders');
-    return response.data || [];
+    try {
+      const response = await api.get<Order[]>('/admin/orders');
+      return response.data || [];
+    } catch (error) {
+      console.warn('API unavailable for admin orders');
+      return [];
+    }
   },
 
   async updateOrderStatus(orderId: number, status: Order['status']): Promise<ApiResponse<Order>> {
