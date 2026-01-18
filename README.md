@@ -1,73 +1,159 @@
-# Welcome to your Lovable project
+# Shaheeda E-commerce Platform
 
-## Project info
+A modern e-commerce platform built with React + PHP backend.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Technology Stack
 
-## How can I edit this code?
+### Frontend
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI components
+- **React Query** - Data fetching
+- **React Router** - Navigation
 
-There are several ways of editing your application.
+### Backend
+- **PHP 7.4+** - Server-side API
+- **MySQL 5.7+** - Database
+- **JWT** - Authentication
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 📁 Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
+```
+├── src/                    # React frontend source
+│   ├── components/         # UI components
+│   ├── pages/              # Page components
+│   ├── context/            # React context providers
+│   ├── lib/                # Utilities and API
+│   └── hooks/              # Custom hooks
+├── php-api/                # PHP backend API
+│   ├── config/             # Database, JWT, CORS config
+│   ├── endpoints/          # API endpoints
+│   ├── database/           # SQL schema
+│   └── helpers/            # Response helpers
+└── public/                 # Static assets
+```
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🛠️ Quick Start
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Frontend Only (Mock Data)
 
-Follow these steps:
+```bash
+# Install dependencies
+npm install
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app runs at `http://localhost:5173` with mock data.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Full Stack (With PHP Backend)
 
-**Use GitHub Codespaces**
+1. **Set up the PHP API** - See [PHP API Setup Guide](./php-api/README.md)
+2. **Update environment variable:**
+   ```env
+   VITE_API_URL=http://localhost/api
+   ```
+3. **Start frontend:**
+   ```bash
+   npm run dev
+   ```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 📖 Backend Setup Guides
 
-This project is built with:
+### 👉 [Complete PHP API Documentation](./php-api/README.md)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Includes:
+- **Local Development** (XAMPP) - Step-by-step setup
+- **Production Deployment** (cPanel) - Complete guide
+- **API Reference** - All endpoints documented
+- **Security Best Practices**
+- **Troubleshooting Guide**
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 🔧 Environment Variables
 
-## Can I connect a custom domain to my Lovable project?
+Create a `.env` file in the project root:
 
-Yes, you can!
+```env
+# API URL (change based on environment)
+VITE_API_URL=http://localhost/api          # Local development
+# VITE_API_URL=https://yourdomain.com/api  # Production
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🌐 Deployment Options
+
+### Frontend Deployment
+
+**Option 1: Lovable (Recommended)**
+1. Open your [Lovable Project](https://lovable.dev)
+2. Click **Share → Publish**
+
+**Option 2: Static Hosting**
+```bash
+npm run build
+# Upload 'dist' folder to any static host
+```
+
+### Backend Deployment
+
+Deploy the PHP API to any PHP hosting:
+- **cPanel** - See [PHP API README](./php-api/README.md#cpanel-production-deployment)
+- **Any PHP Host** - Upload `php-api` folder, configure database
+
+---
+
+## 🔑 Default Admin Credentials
+
+After setting up the database:
+
+- **Email:** `admin@shaheeda.com`
+- **Password:** `Admin123!`
+
+⚠️ **Change these immediately in production!**
+
+---
+
+## 📱 Features
+
+- 🛒 Full shopping cart functionality
+- 👤 User authentication (register, login, profile)
+- 📦 Order management
+- ❤️ Wishlist
+- 🔍 Product search and filtering
+- 📊 Admin dashboard
+- 📱 Responsive design
+- 🌙 Dark/Light mode
+
+---
+
+## 📚 Additional Documentation
+
+- [Django Backend Guide](./docs/DJANGO_BACKEND_GUIDE.md) - Alternative Python backend
+- [Lovable Docs](https://docs.lovable.dev) - Platform documentation
+
+---
+
+## 🤝 Contributing
+
+1. Clone the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+---
+
+## 📄 License
+
+MIT License - Feel free to use and modify for your projects.
