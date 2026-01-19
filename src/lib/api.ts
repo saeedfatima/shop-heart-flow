@@ -1,5 +1,14 @@
 // src/lib/api.ts
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+// API Base URL - falls back to empty string if not configured
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+// Log API configuration on load (helps with debugging)
+if (API_BASE_URL) {
+  console.log('[API] Configured to use:', API_BASE_URL);
+} else {
+  console.warn('[API] VITE_API_URL not configured - API calls will fail, using mock data');
+}
 
 interface TokenPair {
   access: string;
@@ -29,11 +38,31 @@ export interface ApiResponse<T> {
   error: string | null;
 }
 
+// Check if API is configured and accessible
+export const isApiConfigured = (): boolean => {
+  return Boolean(API_BASE_URL && API_BASE_URL.length > 0);
+};
+
 class ApiClient {
   private baseUrl: string;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+  }
+
+  // Check if the API is reachable
+  async healthCheck(): Promise<boolean> {
+    if (!this.baseUrl) return false;
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
   }
 
   private getAccessToken(): string | null {
@@ -82,6 +111,12 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    // Return error immediately if API is not configured
+    if (!this.baseUrl) {
+      console.warn('[API] Request skipped - API not configured:', endpoint);
+      return { data: null, error: 'API not configured' };
+    }
+
     const url = `${this.baseUrl}${endpoint}`;
 
     const headers: HeadersInit = {
@@ -95,7 +130,13 @@ class ApiClient {
     }
 
     try {
-      let response = await fetch(url, { ...options, headers });
+      console.log('[API] Request:', options.method || 'GET', endpoint);
+      
+      let response = await fetch(url, { 
+        ...options, 
+        headers,
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
 
       // If 401, try to refresh token and retry
       if (response.status === 401 && token) {
@@ -111,12 +152,16 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        console.warn('[API] Error response:', response.status, data);
         return { data: null, error: data.message || data.detail || 'Request failed' };
       }
 
+      console.log('[API] Success:', endpoint);
       return { data, error: null };
     } catch (err) {
-      return { data: null, error: 'Network error' };
+      const errorMessage = err instanceof Error ? err.message : 'Network error';
+      console.warn('[API] Network error:', endpoint, errorMessage);
+      return { data: null, error: errorMessage };
     }
   }
 

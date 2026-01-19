@@ -1,9 +1,24 @@
 // API Services - Typed functions for all PHP backend endpoints
 // Falls back to mock data when API is unavailable (e.g., in Lovable preview)
-import { api, ApiResponse, ApiUser } from './api';
+import { api, ApiResponse, ApiUser, isApiConfigured } from './api';
 import { products as mockProducts, categories as mockCategories, getFeaturedProducts, getProductById } from '@/data/products';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+
+// Track if we've already warned about using mock data
+let mockDataWarningShown = false;
+
+const logMockFallback = (service: string) => {
+  if (!mockDataWarningShown && !isApiConfigured()) {
+    console.info(
+      `%c[Mock Data] Using mock data for ${service}. To use real data, deploy PHP API and set VITE_API_URL.`,
+      'color: #f59e0b; font-weight: bold'
+    );
+    mockDataWarningShown = true;
+  } else {
+    console.log(`[Mock Data] Fallback to mock: ${service}`);
+  }
+};
 
 // ============================================
 // TYPE DEFINITIONS
@@ -223,12 +238,14 @@ export const categoryService = {
     try {
       const response = await api.get<Category[]>('/categories');
       if (response.data && Array.isArray(response.data)) {
+        console.log('[API] Loaded', response.data.length, 'categories from backend');
         return response.data.map(normalizeCategory);
       }
     } catch (error) {
-      console.warn('API unavailable, using mock categories');
+      // Error already logged in api.ts
     }
     // Fallback to mock data
+    logMockFallback('categories');
     return mockCategories.map((c, index) => normalizeCategory({ ...c, id: index + 1 }));
   },
 
@@ -239,9 +256,10 @@ export const categoryService = {
         return normalizeCategory(response.data);
       }
     } catch (error) {
-      console.warn('API unavailable, using mock category');
+      // Error already logged in api.ts
     }
     // Fallback to mock data
+    logMockFallback('category by slug');
     const mockCat = mockCategories.find(c => c.slug === slug);
     return mockCat ? normalizeCategory({ ...mockCat, id: mockCategories.indexOf(mockCat) + 1 }) : null;
   },
@@ -272,16 +290,18 @@ export const productService = {
       const response = await api.get<PaginatedResponse<any>>(endpoint);
 
       if (response.data && response.data.results) {
+        console.log('[API] Loaded', response.data.results.length, 'products from backend');
         return {
           ...response.data,
           results: response.data.results.map(normalizeProduct),
         };
       }
     } catch (error) {
-      console.warn('API unavailable, using mock products');
+      // Error already logged in api.ts
     }
     
     // Fallback to mock data
+    logMockFallback('products');
     let filteredProducts = [...mockProducts];
     
     if (filters?.category && filters.category !== 'all') {
@@ -309,12 +329,14 @@ export const productService = {
     try {
       const response = await api.get<any[]>('/products/featured');
       if (response.data && Array.isArray(response.data)) {
+        console.log('[API] Loaded', response.data.length, 'featured products from backend');
         return response.data.map(normalizeProduct);
       }
     } catch (error) {
-      console.warn('API unavailable, using mock featured products');
+      // Error already logged in api.ts
     }
     // Fallback to mock data
+    logMockFallback('featured products');
     return getFeaturedProducts().map(normalizeProduct);
   },
 
@@ -322,12 +344,14 @@ export const productService = {
     try {
       const response = await api.get<any>(`/products/${id}`);
       if (response.data) {
+        console.log('[API] Loaded product', id, 'from backend');
         return normalizeProduct(response.data);
       }
     } catch (error) {
-      console.warn('API unavailable, using mock product');
+      // Error already logged in api.ts
     }
     // Fallback to mock data
+    logMockFallback('product by id');
     const mockProduct = getProductById(String(id));
     return mockProduct ? normalizeProduct(mockProduct) : null;
   },
@@ -337,7 +361,7 @@ export const productService = {
       const response = await api.get<Review[]>(`/products/${productId}/reviews`);
       return response.data || [];
     } catch (error) {
-      console.warn('API unavailable for reviews');
+      // Error already logged in api.ts
       return [];
     }
   },
