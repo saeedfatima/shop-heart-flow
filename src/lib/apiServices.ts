@@ -1,9 +1,13 @@
-// API Services - Typed functions for all PHP backend endpoints
+// API Services - Typed functions for Django REST Framework backend
 // Falls back to mock data when API is unavailable (e.g., in Lovable preview)
 import { api, ApiResponse, ApiUser, isApiConfigured } from './api';
 import { products as mockProducts, categories as mockCategories, getFeaturedProducts, getProductById } from '@/data/products';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+// Get base URL for media files (without /api suffix)
+const getMediaBaseUrl = (): string => {
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+  return apiUrl.replace(/\/api\/?$/, '');
+};
 
 // Track if we've already warned about using mock data
 let mockDataWarningShown = false;
@@ -11,9 +15,10 @@ let mockDataWarningShown = false;
 const logMockFallback = (service: string) => {
   if (!mockDataWarningShown && !isApiConfigured()) {
     console.info(
-      `%c[Mock Data] Using mock data for ${service}. To use real data, deploy PHP API and set VITE_API_URL.`,
+      `%c[Mock Data] Using mock data for ${service}. To use real data, start Django server and set VITE_API_URL.`,
       'color: #f59e0b; font-weight: bold'
     );
+    console.info('%c[Mock Data] Example: VITE_API_URL=http://localhost:8000/api', 'color: #f59e0b');
     mockDataWarningShown = true;
   } else {
     console.log(`[Mock Data] Fallback to mock: ${service}`);
@@ -201,33 +206,43 @@ export interface AdminStats {
 // NORMALIZERS - Convert API response to frontend format
 // ============================================
 
-export const normalizeProduct = (p: any): Product => ({
-  id: String(p.id),
-  name: p.name,
-  slug: p.slug,
-  price: Number(p.price),
-  originalPrice: p.original_price ? Number(p.original_price) : p.originalPrice,
-  description: p.description || '',
-  category: p.category?.name || p.category || '',
-  images: (p.images || []).map((img: any) => {
-    const url = typeof img === 'string' ? img : img.image;
-    return url?.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-  }),
-  colors: p.colors || [],
-  sizes: p.sizes || [],
-  inStock: p.in_stock ?? p.inStock ?? true,
-  featured: p.featured || false,
-  rating: p.rating ? Number(p.rating) : undefined,
-  reviewCount: p.review_count ?? p.reviewCount,
-});
+export const normalizeProduct = (p: any): Product => {
+  const mediaBaseUrl = getMediaBaseUrl();
+  
+  return {
+    id: String(p.id),
+    name: p.name,
+    slug: p.slug,
+    price: Number(p.price),
+    originalPrice: p.original_price ? Number(p.original_price) : p.originalPrice,
+    description: p.description || '',
+    category: p.category?.name || p.category || '',
+    images: (p.images || []).map((img: any) => {
+      const url = typeof img === 'string' ? img : img.image;
+      // Handle Django media URLs
+      if (!url) return '/placeholder.svg';
+      return url.startsWith('http') ? url : `${mediaBaseUrl}${url}`;
+    }),
+    colors: p.colors || [],
+    sizes: p.sizes || [],
+    inStock: p.in_stock ?? p.inStock ?? true,
+    featured: p.featured || false,
+    rating: p.rating ? Number(p.rating) : undefined,
+    reviewCount: p.review_count ?? p.reviewCount,
+  };
+};
 
-export const normalizeCategory = (c: any): Category => ({
-  id: c.id || 0,
-  name: c.name,
-  slug: c.slug,
-  description: c.description,
-  image: c.image?.startsWith('http') ? c.image : c.image ? `${API_BASE_URL}${c.image}` : undefined,
-});
+export const normalizeCategory = (c: any): Category => {
+  const mediaBaseUrl = getMediaBaseUrl();
+  
+  return {
+    id: c.id || 0,
+    name: c.name,
+    slug: c.slug,
+    description: c.description,
+    image: c.image ? (c.image.startsWith('http') ? c.image : `${mediaBaseUrl}${c.image}`) : undefined,
+  };
+};
 
 // ============================================
 // CATEGORY SERVICES
@@ -236,10 +251,15 @@ export const normalizeCategory = (c: any): Category => ({
 export const categoryService = {
   async getAll(): Promise<Category[]> {
     try {
-      const response = await api.get<Category[]>('/categories');
+      // Django returns: { success: true, categories: [...] }
+      const response = await api.get<{ success: boolean; categories: any[] }>('/categories');
+      if (response.data?.success && response.data.categories) {
+        console.log('[Django API] Loaded', response.data.categories.length, 'categories from backend');
+        return response.data.categories.map(normalizeCategory);
+      }
+      // Also handle array response for compatibility
       if (response.data && Array.isArray(response.data)) {
-        console.log('[API] Loaded', response.data.length, 'categories from backend');
-        return response.data.map(normalizeCategory);
+        return (response.data as any[]).map(normalizeCategory);
       }
     } catch (error) {
       // Error already logged in api.ts
@@ -251,9 +271,10 @@ export const categoryService = {
 
   async getBySlug(slug: string): Promise<Category | null> {
     try {
-      const response = await api.get<Category>(`/categories/${slug}`);
-      if (response.data) {
-        return normalizeCategory(response.data);
+      // Django returns: { success: true, category: {...} }
+      const response = await api.get<{ success: boolean; category: any }>(`/categories/${slug}`);
+      if (response.data?.success && response.data.category) {
+        return normalizeCategory(response.data.category);
       }
     } catch (error) {
       // Error already logged in api.ts
@@ -283,14 +304,15 @@ export const productService = {
       if (filters?.page) params.set('page', String(filters.page));
       if (filters?.category) params.set('category', filters.category);
       if (filters?.search) params.set('search', filters.search);
-      if (filters?.ordering) params.set('ordering', filters.ordering);
+      if (filters?.ordering) params.set('sort', filters.ordering); // Django uses 'sort'
 
       const queryString = params.toString();
       const endpoint = `/products${queryString ? `?${queryString}` : ''}`;
       const response = await api.get<PaginatedResponse<any>>(endpoint);
 
+      // Django REST Framework pagination format
       if (response.data && response.data.results) {
-        console.log('[API] Loaded', response.data.results.length, 'products from backend');
+        console.log('[Django API] Loaded', response.data.results.length, 'products from backend');
         return {
           ...response.data,
           results: response.data.results.map(normalizeProduct),
@@ -327,10 +349,15 @@ export const productService = {
 
   async getFeatured(): Promise<Product[]> {
     try {
-      const response = await api.get<any[]>('/products/featured');
+      // Django returns: { success: true, products: [...] }
+      const response = await api.get<{ success: boolean; products: any[] }>('/products/featured');
+      if (response.data?.success && response.data.products) {
+        console.log('[Django API] Loaded', response.data.products.length, 'featured products from backend');
+        return response.data.products.map(normalizeProduct);
+      }
+      // Also handle array response for compatibility
       if (response.data && Array.isArray(response.data)) {
-        console.log('[API] Loaded', response.data.length, 'featured products from backend');
-        return response.data.map(normalizeProduct);
+        return (response.data as any[]).map(normalizeProduct);
       }
     } catch (error) {
       // Error already logged in api.ts
@@ -342,9 +369,14 @@ export const productService = {
 
   async getById(id: string | number): Promise<Product | null> {
     try {
-      const response = await api.get<any>(`/products/${id}`);
-      if (response.data) {
-        console.log('[API] Loaded product', id, 'from backend');
+      // Django returns: { success: true, product: {...} }
+      const response = await api.get<{ success?: boolean; product?: any; id?: any }>(`/products/${id}`);
+      if (response.data?.success && response.data.product) {
+        console.log('[Django API] Loaded product', id, 'from backend');
+        return normalizeProduct(response.data.product);
+      }
+      // Also handle direct object response for compatibility
+      if (response.data && response.data.id) {
         return normalizeProduct(response.data);
       }
     } catch (error) {

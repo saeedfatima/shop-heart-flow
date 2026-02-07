@@ -84,13 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       // Check if it's a network error
-      if (error === 'Network error') {
-        return { success: false, message: 'Cannot connect to server. Please ensure the PHP backend is running.' };
+      if (error === 'Network error' || error?.includes('Cannot connect')) {
+        return { success: false, message: 'Cannot connect to server. Please ensure the Django backend is running at http://localhost:8000' };
       }
       
       return { success: false, message: error || 'Login failed' };
     } catch {
-      return { success: false, message: 'Cannot connect to server. Please ensure the PHP backend is running.' };
+      return { success: false, message: 'Cannot connect to server. Please ensure the Django backend is running.' };
     }
   };
 
