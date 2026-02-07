@@ -1,13 +1,18 @@
 // src/lib/api.ts
+// Django REST Framework API Client
 
-// API Base URL - falls back to empty string if not configured
+// API Base URL - Configure this to point to your Django server
+// Local: http://localhost:8000/api
+// Production: https://yourdomain.com/api
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Log API configuration on load (helps with debugging)
 if (API_BASE_URL) {
-  console.log('[API] Configured to use:', API_BASE_URL);
+  console.log('[Django API] Configured to use:', API_BASE_URL);
 } else {
-  console.warn('[API] VITE_API_URL not configured - API calls will fail, using mock data');
+  console.warn('[Django API] VITE_API_URL not configured - API calls will fail, using mock data');
+  console.info('[Django API] To connect to Django backend, set VITE_API_URL in .env file');
+  console.info('[Django API] Example: VITE_API_URL=http://localhost:8000/api');
 }
 
 interface TokenPair {
@@ -21,6 +26,7 @@ export interface ApiUser {
   first_name: string;
   last_name: string;
   role: 'admin' | 'user';
+  is_staff?: boolean;
   avatar?: string;
   phone?: string;
   bio?: string;
@@ -41,6 +47,17 @@ export interface ApiResponse<T> {
 // Check if API is configured and accessible
 export const isApiConfigured = (): boolean => {
   return Boolean(API_BASE_URL && API_BASE_URL.length > 0);
+};
+
+// Helper to ensure endpoints have trailing slashes (Django convention)
+const ensureTrailingSlash = (endpoint: string): string => {
+  // Don't add trailing slash if there are query params
+  if (endpoint.includes('?')) {
+    const [path, query] = endpoint.split('?');
+    const normalizedPath = path.endsWith('/') ? path : `${path}/`;
+    return `${normalizedPath}?${query}`;
+  }
+  return endpoint.endsWith('/') ? endpoint : `${endpoint}/`;
 };
 
 class ApiClient {
@@ -113,11 +130,13 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     // Return error immediately if API is not configured
     if (!this.baseUrl) {
-      console.warn('[API] Request skipped - API not configured:', endpoint);
-      return { data: null, error: 'API not configured' };
+      console.warn('[Django API] Request skipped - API not configured:', endpoint);
+      return { data: null, error: 'API not configured. Set VITE_API_URL to your Django server.' };
     }
 
-    const url = `${this.baseUrl}${endpoint}`;
+    // Ensure trailing slash for Django REST Framework
+    const normalizedEndpoint = ensureTrailingSlash(endpoint);
+    const url = `${this.baseUrl}${normalizedEndpoint}`;
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -130,16 +149,17 @@ class ApiClient {
     }
 
     try {
-      console.log('[API] Request:', options.method || 'GET', endpoint);
+      console.log('[Django API] Request:', options.method || 'GET', normalizedEndpoint);
       
       let response = await fetch(url, { 
         ...options, 
         headers,
-        signal: AbortSignal.timeout(10000), // 10 second timeout
+        signal: AbortSignal.timeout(15000), // 15 second timeout for Django
       });
 
       // If 401, try to refresh token and retry
       if (response.status === 401 && token) {
+        console.log('[Django API] Token expired, attempting refresh...');
         const refreshed = await this.refreshAccessToken();
 
         if (refreshed) {
@@ -152,15 +172,27 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        console.warn('[API] Error response:', response.status, data);
-        return { data: null, error: data.message || data.detail || 'Request failed' };
+        console.warn('[Django API] Error response:', response.status, data);
+        // Handle Django REST Framework error formats
+        const errorMessage = data.message || data.detail || 
+          (data.errors ? Object.values(data.errors).flat().join(', ') : 'Request failed');
+        return { data: null, error: errorMessage };
       }
 
-      console.log('[API] Success:', endpoint);
+      console.log('[Django API] Success:', normalizedEndpoint);
       return { data, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Network error';
-      console.warn('[API] Network error:', endpoint, errorMessage);
+      console.warn('[Django API] Network error:', normalizedEndpoint, errorMessage);
+      
+      // Provide helpful error messages
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        return { 
+          data: null, 
+          error: 'Cannot connect to Django server. Ensure it\'s running at ' + this.baseUrl 
+        };
+      }
+      
       return { data: null, error: errorMessage };
     }
   }

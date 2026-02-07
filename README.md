@@ -1,6 +1,6 @@
 # Shaheeda E-commerce Platform
 
-A modern e-commerce platform built with React + PHP backend.
+A modern e-commerce platform built with React + Django REST Framework backend.
 
 ## 🚀 Technology Stack
 
@@ -14,9 +14,9 @@ A modern e-commerce platform built with React + PHP backend.
 - **React Router** - Navigation
 
 ### Backend
-- **PHP 7.4+** - Server-side API
-- **MySQL 5.7+** - Database
-- **JWT** - Authentication
+- **Django REST Framework** - Python API
+- **MySQL 5.7+** - Database (via XAMPP)
+- **JWT** - Authentication (SimpleJWT)
 
 ---
 
@@ -27,13 +27,10 @@ A modern e-commerce platform built with React + PHP backend.
 │   ├── components/         # UI components
 │   ├── pages/              # Page components
 │   ├── context/            # React context providers
-│   ├── lib/                # Utilities and API
+│   ├── lib/                # Utilities and API client
 │   └── hooks/              # Custom hooks
-├── php-api/                # PHP backend API
-│   ├── config/             # Database, JWT, CORS config
-│   ├── endpoints/          # API endpoints
-│   ├── database/           # SQL schema
-│   └── helpers/            # Response helpers
+├── docs/                   # Documentation
+│   └── DJANGO_BACKEND_GUIDE.md  # Complete Django setup guide
 └── public/                 # Static assets
 ```
 
@@ -51,42 +48,54 @@ npm install
 npm run dev
 ```
 
-The app runs at `http://localhost:5173` with mock data.
+The app runs at `http://localhost:8080` with mock data.
 
-### Full Stack (With PHP Backend)
+### Full Stack (With Django Backend)
 
-1. **Set up the PHP API** - See [PHP API Setup Guide](./php-api/README.md)
-2. **Update environment variable:**
-   ```env
-   VITE_API_URL=http://localhost/api
+1. **Set up the Django API** - See [Django Backend Guide](./docs/DJANGO_BACKEND_GUIDE.md)
+
+2. **Start Django server:**
+   ```bash
+   cd ecommerce_backend
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   python manage.py runserver
    ```
-3. **Start frontend:**
+
+3. **Update `.env` file:**
+   ```env
+   VITE_API_URL=http://localhost:8000/api
+   ```
+
+4. **Start frontend:**
    ```bash
    npm run dev
    ```
 
 ---
 
-## 📖 Backend Setup Guides
+## 📖 Backend Setup Guide
 
-### 👉 [Complete PHP API Documentation](./php-api/README.md)
+### 👉 [Complete Django REST Framework Documentation](./docs/DJANGO_BACKEND_GUIDE.md)
 
 Includes:
-- **Local Development** (XAMPP) - Step-by-step setup
-- **Production Deployment** (cPanel) - Complete guide
-- **API Reference** - All endpoints documented
-- **Security Best Practices**
-- **Troubleshooting Guide**
+- **Prerequisites** - XAMPP/MySQL installation
+- **Django Project Setup** - Step-by-step
+- **Models & Serializers** - Complete code
+- **Views & URLs** - All API endpoints
+- **Authentication** - JWT with SimpleJWT
+- **CORS Configuration** - For frontend connection
+- **File Uploads** - Media handling
+- **Testing** - API testing guide
 
 ---
 
 ## 🔧 Environment Variables
 
-Create a `.env` file in the project root:
+The `.env` file in project root:
 
 ```env
-# API URL (change based on environment)
-VITE_API_URL=http://localhost/api          # Local development
+# Django API URL
+VITE_API_URL=http://localhost:8000/api    # Local development
 # VITE_API_URL=https://yourdomain.com/api  # Production
 ```
 
@@ -108,9 +117,11 @@ npm run build
 
 ### Backend Deployment
 
-Deploy the PHP API to any PHP hosting:
-- **cPanel** - See [PHP API README](./php-api/README.md#cpanel-production-deployment)
-- **Any PHP Host** - Upload `php-api` folder, configure database
+Deploy the Django API to any Python hosting:
+- **PythonAnywhere** - Free tier available
+- **Heroku** - Easy deployment
+- **DigitalOcean/AWS** - Full control
+- **cPanel** - If Python support available
 
 ---
 
@@ -140,7 +151,7 @@ After setting up the database:
 
 ## 📚 Additional Documentation
 
-- [Django Backend Guide](./docs/DJANGO_BACKEND_GUIDE.md) - Alternative Python backend
+- [Django Backend Guide](./docs/DJANGO_BACKEND_GUIDE.md) - Complete Django REST Framework setup
 - [Lovable Docs](https://docs.lovable.dev) - Platform documentation
 
 ---
