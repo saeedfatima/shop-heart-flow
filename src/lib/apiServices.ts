@@ -523,6 +523,41 @@ export const paymentMethodService = {
 // ADMIN SERVICES
 // ============================================
 
+export interface AdminProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+  status: 'active' | 'out_of_stock' | 'low_stock';
+  image: string;
+}
+
+export interface AdminCustomer {
+  id: string;
+  name: string;
+  email: string;
+  orders: number;
+  spent: number;
+  joined: string;
+  status: 'active' | 'vip' | 'new' | 'inactive';
+  avatar: string | null;
+}
+
+export interface AdminCustomerStats {
+  total_customers: number;
+  new_this_month: number;
+  avg_orders: number;
+  avg_value: number;
+}
+
+export interface AdminProductStats {
+  total: number;
+  in_stock: number;
+  low_stock: number;
+  out_of_stock: number;
+}
+
 export const adminService = {
   async getStats(): Promise<AdminStats | null> {
     try {
@@ -530,7 +565,6 @@ export const adminService = {
       return response.data || null;
     } catch (error) {
       console.warn('API unavailable for admin stats');
-      // Return mock stats for preview
       return {
         total_revenue: 45250,
         revenue_change: 12.5,
@@ -556,5 +590,93 @@ export const adminService = {
 
   async updateOrderStatus(orderId: number, status: Order['status']): Promise<ApiResponse<Order>> {
     return api.patch<Order>(`/admin/orders/${orderId}/status`, { status });
+  },
+
+  async getProducts(): Promise<{ products: AdminProduct[]; stats: AdminProductStats }> {
+    try {
+      const response = await api.get<{ products: any[]; stats: AdminProductStats }>('/admin/products');
+      if (response.data) {
+        const mediaBaseUrl = getMediaBaseUrl();
+        const products = (response.data.products || response.data as any).map((p: any) => ({
+          id: String(p.id),
+          name: p.name,
+          category: p.category?.name || p.category || '',
+          price: Number(p.price),
+          stock: p.stock ?? p.quantity ?? 0,
+          status: p.stock === 0 ? 'out_of_stock' : p.stock <= 10 ? 'low_stock' : 'active',
+          image: p.image ? (p.image.startsWith('http') ? p.image : `${mediaBaseUrl}${p.image}`) : '/placeholder.svg',
+        }));
+        const stats = response.data.stats || {
+          total: products.length,
+          in_stock: products.filter((p: AdminProduct) => p.status === 'active').length,
+          low_stock: products.filter((p: AdminProduct) => p.status === 'low_stock').length,
+          out_of_stock: products.filter((p: AdminProduct) => p.status === 'out_of_stock').length,
+        };
+        return { products, stats };
+      }
+    } catch (error) {
+      console.warn('API unavailable for admin products');
+    }
+    // Fallback mock
+    logMockFallback('admin products');
+    const fallbackProducts: AdminProduct[] = mockProducts.map(p => ({
+      id: String(p.id),
+      name: p.name,
+      category: p.category,
+      price: p.price,
+      stock: Math.floor(Math.random() * 200),
+      status: 'active' as const,
+      image: p.images?.[0] || '/placeholder.svg',
+    }));
+    return {
+      products: fallbackProducts,
+      stats: { total: fallbackProducts.length, in_stock: fallbackProducts.length, low_stock: 0, out_of_stock: 0 },
+    };
+  },
+
+  async getCustomers(): Promise<{ customers: AdminCustomer[]; stats: AdminCustomerStats }> {
+    try {
+      const response = await api.get<{ customers: any[]; stats: AdminCustomerStats }>('/admin/customers');
+      if (response.data) {
+        const customers = (response.data.customers || response.data as any).map((c: any) => ({
+          id: String(c.id),
+          name: c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+          email: c.email,
+          orders: c.orders_count ?? c.orders ?? 0,
+          spent: Number(c.total_spent ?? c.spent ?? 0),
+          joined: c.date_joined || c.created_at || c.joined || '',
+          status: c.status || 'active',
+          avatar: c.avatar || null,
+        }));
+        const stats = response.data.stats || {
+          total_customers: customers.length,
+          new_this_month: 0,
+          avg_orders: 0,
+          avg_value: 0,
+        };
+        return { customers, stats };
+      }
+    } catch (error) {
+      console.warn('API unavailable for admin customers');
+    }
+    // Fallback mock
+    logMockFallback('admin customers');
+    const fallbackCustomers: AdminCustomer[] = [
+      { id: "1", name: "John Doe", email: "john@example.com", orders: 12, spent: 1299.99, joined: "2023-06-15", status: "active", avatar: null },
+      { id: "2", name: "Jane Smith", email: "jane@example.com", orders: 8, spent: 849.50, joined: "2023-08-22", status: "active", avatar: null },
+      { id: "3", name: "Alice Brown", email: "alice@example.com", orders: 15, spent: 2150.00, joined: "2023-03-05", status: "vip", avatar: null },
+    ];
+    return {
+      customers: fallbackCustomers,
+      stats: { total_customers: fallbackCustomers.length, new_this_month: 1, avg_orders: 11.7, avg_value: 1433 },
+    };
+  },
+
+  async deleteProduct(id: string): Promise<ApiResponse<void>> {
+    return api.delete<void>(`/admin/products/${id}`);
+  },
+
+  async createProduct(data: FormData): Promise<ApiResponse<any>> {
+    return api.uploadFile('/admin/products/create/', data);
   },
 };
