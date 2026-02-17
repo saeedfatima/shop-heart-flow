@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,20 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Plus, Edit, Trash2, Package, Eye } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Package, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatNaira } from "@/lib/currency";
-
-const mockProducts = [
-  { id: "PRD-001", name: "Classic White Tee", category: "T-Shirts", price: 29.99, stock: 150, status: "active", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop" },
-  { id: "PRD-002", name: "Denim Jacket", category: "Outerwear", price: 89.99, stock: 45, status: "active", image: "https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?w=100&h=100&fit=crop" },
-  { id: "PRD-003", name: "Summer Dress", category: "Dresses", price: 59.99, stock: 0, status: "out_of_stock", image: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=100&h=100&fit=crop" },
-  { id: "PRD-004", name: "Leather Belt", category: "Accessories", price: 39.99, stock: 78, status: "active", image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100&h=100&fit=crop" },
-  { id: "PRD-005", name: "Canvas Sneakers", category: "Footwear", price: 69.99, stock: 12, status: "low_stock", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop" },
-  { id: "PRD-006", name: "Cashmere Sweater", category: "Sweaters", price: 129.99, stock: 32, status: "active", image: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=100&h=100&fit=crop" },
-  { id: "PRD-007", name: "Silk Scarf", category: "Accessories", price: 59.99, stock: 67, status: "active", image: "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=100&h=100&fit=crop" },
-  { id: "PRD-008", name: "Wool Coat", category: "Outerwear", price: 199.99, stock: 8, status: "low_stock", image: "https://images.unsplash.com/photo-1544923246-77307dd628b7?w=100&h=100&fit=crop" },
-];
+import { adminService, AdminProduct, AdminProductStats } from "@/lib/apiServices";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -37,11 +27,31 @@ const AdminProducts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [stats, setStats] = useState<AdminProductStats>({ total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0 });
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const categories = [...new Set(mockProducts.map(p => p.category))];
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  const filteredProducts = mockProducts.filter(product => {
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const data = await adminService.getProducts();
+      setProducts(data.products);
+      setStats(data.stats);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
@@ -56,11 +66,18 @@ const AdminProducts = () => {
     });
   };
 
-  const handleDelete = (productId: string) => {
-    toast({
-      title: "Product deleted",
-      description: "The product has been removed.",
-    });
+  const handleDelete = async (productId: string) => {
+    try {
+      const { error } = await adminService.deleteProduct(productId);
+      if (error) {
+        toast({ title: "Error", description: error, variant: "destructive" });
+      } else {
+        setProducts(prev => prev.filter(p => p.id !== productId));
+        toast({ title: "Product deleted", description: "The product has been removed." });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete product.", variant: "destructive" });
+    }
   };
 
   return (
@@ -84,9 +101,7 @@ const AdminProducts = () => {
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>
-                Fill in the product details below.
-              </DialogDescription>
+              <DialogDescription>Fill in the product details below.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
@@ -144,25 +159,25 @@ const AdminProducts = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold">124</p>
+            <p className="text-2xl font-bold">{loading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats.total}</p>
             <p className="text-xs text-muted-foreground">Total Products</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-green-600">98</p>
+            <p className="text-2xl font-bold text-green-600">{loading ? '-' : stats.in_stock}</p>
             <p className="text-xs text-muted-foreground">In Stock</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-orange-600">15</p>
+            <p className="text-2xl font-bold text-orange-600">{loading ? '-' : stats.low_stock}</p>
             <p className="text-xs text-muted-foreground">Low Stock</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold text-red-600">11</p>
+            <p className="text-2xl font-bold text-red-600">{loading ? '-' : stats.out_of_stock}</p>
             <p className="text-xs text-muted-foreground">Out of Stock</p>
           </CardContent>
         </Card>
@@ -201,60 +216,61 @@ const AdminProducts = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead className="hidden md:table-cell">Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead className="hidden sm:table-cell">Stock</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={product.image} 
-                        alt={product.name}
-                        className="w-10 h-10 object-cover rounded"
-                      />
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">{product.id}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">{product.category}</TableCell>
-                  <TableCell>{formatNaira(product.price)}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(product.status)}>
-                      {product.status.replace('_', ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleDelete(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">No products found</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="hidden md:table-cell">Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead className="hidden sm:table-cell">Stock</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={product.image} 
+                          alt={product.name}
+                          className="w-10 h-10 object-cover rounded"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+                        />
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">ID: {product.id}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{product.category}</TableCell>
+                    <TableCell>{formatNaira(product.price)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(product.status)}>
+                        {product.status.replace('_', ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </motion.div>
