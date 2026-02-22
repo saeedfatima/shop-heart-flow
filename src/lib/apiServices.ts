@@ -1,4 +1,4 @@
-// API Services - Typed functions for Django REST Framework backend
+// API Services - Typed functions for PHP backend
 // Falls back to mock data when API is unavailable (e.g., in Lovable preview)
 import { api, ApiResponse, ApiUser, isApiConfigured } from './api';
 import { products as mockProducts, categories as mockCategories, getFeaturedProducts, getProductById } from '@/data/products';
@@ -15,10 +15,10 @@ let mockDataWarningShown = false;
 const logMockFallback = (service: string) => {
   if (!mockDataWarningShown && !isApiConfigured()) {
     console.info(
-      `%c[Mock Data] Using mock data for ${service}. To use real data, start Django server and set VITE_API_URL.`,
+      `%c[Mock Data] Using mock data for ${service}. To use real data, start PHP server and set VITE_API_URL.`,
       'color: #f59e0b; font-weight: bold'
     );
-    console.info('%c[Mock Data] Example: VITE_API_URL=http://localhost:8000/api', 'color: #f59e0b');
+    console.info('%c[Mock Data] Example: VITE_API_URL=http://localhost/api', 'color: #f59e0b');
     mockDataWarningShown = true;
   } else {
     console.log(`[Mock Data] Fallback to mock: ${service}`);
@@ -219,7 +219,6 @@ export const normalizeProduct = (p: any): Product => {
     category: p.category?.name || p.category || '',
     images: (p.images || []).map((img: any) => {
       const url = typeof img === 'string' ? img : img.image;
-      // Handle Django media URLs
       if (!url) return '/placeholder.svg';
       return url.startsWith('http') ? url : `${mediaBaseUrl}${url}`;
     }),
@@ -251,15 +250,11 @@ export const normalizeCategory = (c: any): Category => {
 export const categoryService = {
   async getAll(): Promise<Category[]> {
     try {
-      // Django returns: { success: true, categories: [...] }
-      const response = await api.get<{ success: boolean; categories: any[] }>('/categories');
-      if (response.data?.success && response.data.categories) {
-        console.log('[Django API] Loaded', response.data.categories.length, 'categories from backend');
-        return response.data.categories.map(normalizeCategory);
-      }
-      // Also handle array response for compatibility
+      const response = await api.get<any>('/categories');
+      // PHP returns array directly
       if (response.data && Array.isArray(response.data)) {
-        return (response.data as any[]).map(normalizeCategory);
+        console.log('[PHP API] Loaded', response.data.length, 'categories from backend');
+        return response.data.map(normalizeCategory);
       }
     } catch (error) {
       // Error already logged in api.ts
@@ -271,10 +266,9 @@ export const categoryService = {
 
   async getBySlug(slug: string): Promise<Category | null> {
     try {
-      // Django returns: { success: true, category: {...} }
-      const response = await api.get<{ success: boolean; category: any }>(`/categories/${slug}`);
-      if (response.data?.success && response.data.category) {
-        return normalizeCategory(response.data.category);
+      const response = await api.get<any>(`/categories/${slug}`);
+      if (response.data) {
+        return normalizeCategory(response.data);
       }
     } catch (error) {
       // Error already logged in api.ts
@@ -304,15 +298,14 @@ export const productService = {
       if (filters?.page) params.set('page', String(filters.page));
       if (filters?.category) params.set('category', filters.category);
       if (filters?.search) params.set('search', filters.search);
-      if (filters?.ordering) params.set('sort', filters.ordering); // Django uses 'sort'
+      if (filters?.ordering) params.set('ordering', filters.ordering);
 
       const queryString = params.toString();
       const endpoint = `/products${queryString ? `?${queryString}` : ''}`;
       const response = await api.get<PaginatedResponse<any>>(endpoint);
 
-      // Django REST Framework pagination format
       if (response.data && response.data.results) {
-        console.log('[Django API] Loaded', response.data.results.length, 'products from backend');
+        console.log('[PHP API] Loaded', response.data.results.length, 'products from backend');
         return {
           ...response.data,
           results: response.data.results.map(normalizeProduct),
@@ -349,15 +342,11 @@ export const productService = {
 
   async getFeatured(): Promise<Product[]> {
     try {
-      // Django returns: { success: true, products: [...] }
-      const response = await api.get<{ success: boolean; products: any[] }>('/products/featured');
-      if (response.data?.success && response.data.products) {
-        console.log('[Django API] Loaded', response.data.products.length, 'featured products from backend');
-        return response.data.products.map(normalizeProduct);
-      }
-      // Also handle array response for compatibility
+      const response = await api.get<any>('/products/featured');
+      // PHP returns array directly
       if (response.data && Array.isArray(response.data)) {
-        return (response.data as any[]).map(normalizeProduct);
+        console.log('[PHP API] Loaded', response.data.length, 'featured products from backend');
+        return response.data.map(normalizeProduct);
       }
     } catch (error) {
       // Error already logged in api.ts
@@ -369,14 +358,10 @@ export const productService = {
 
   async getById(id: string | number): Promise<Product | null> {
     try {
-      // Django returns: { success: true, product: {...} }
-      const response = await api.get<{ success?: boolean; product?: any; id?: any }>(`/products/${id}`);
-      if (response.data?.success && response.data.product) {
-        console.log('[Django API] Loaded product', id, 'from backend');
-        return normalizeProduct(response.data.product);
-      }
-      // Also handle direct object response for compatibility
+      const response = await api.get<any>(`/products/${id}`);
+      // PHP returns product object directly
       if (response.data && response.data.id) {
+        console.log('[PHP API] Loaded product', id, 'from backend');
         return normalizeProduct(response.data);
       }
     } catch (error) {
