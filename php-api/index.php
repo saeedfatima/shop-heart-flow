@@ -78,6 +78,9 @@ $routes = [
     'DELETE /admin/products/{id}' => 'endpoints/admin/delete-product.php',
     'GET /admin/customers' => 'endpoints/admin/customers.php',
     'GET /admin/analytics' => 'endpoints/admin/analytics.php',
+    'POST /admin/categories/create' => 'endpoints/admin/create-category.php',
+    'PUT /admin/categories/{id}' => 'endpoints/admin/update-category.php',
+    'DELETE /admin/categories/{id}' => 'endpoints/admin/delete-category.php',
 ];
 
 // Match route
