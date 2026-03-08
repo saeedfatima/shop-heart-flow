@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/jwt.php';
+require_once __DIR__ . '/../../config/mailer.php';
 
 $data = getRequestBody();
 
@@ -48,14 +49,16 @@ try {
         errorResponse('Email already registered', 409);
     }
     
-    // Create user
+    // Create user with verification token
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    $verificationToken = bin2hex(random_bytes(32));
+    $verificationExpires = date('Y-m-d H:i:s', strtotime('+24 hours'));
     
     $stmt = $db->prepare("
-        INSERT INTO users (email, password, first_name, last_name, role, created_at)
-        VALUES (?, ?, ?, ?, 'user', NOW())
+        INSERT INTO users (email, password, first_name, last_name, role, email_verified, email_verification_token, email_verification_expires, created_at)
+        VALUES (?, ?, ?, ?, 'user', 0, ?, ?, NOW())
     ");
-    $stmt->execute([$email, $hashedPassword, $firstName, $lastName]);
+    $stmt->execute([$email, $hashedPassword, $firstName, $lastName, $verificationToken, $verificationExpires]);
     
     $userId = $db->lastInsertId();
     
@@ -63,21 +66,30 @@ try {
     $stmt = $db->prepare("
         SELECT id, email, first_name, last_name, role, avatar, 
                phone, bio, location, occupation, date_of_birth,
-               tiktok, whatsapp, instagram, created_at
+               tiktok, whatsapp, instagram, created_at, email_verified
         FROM users 
         WHERE id = ?
     ");
     $stmt->execute([$userId]);
     $user = $stmt->fetch();
     
-    // Generate tokens
+    // Send verification email
+    $mailer = new Mailer();
+    $emailSent = $mailer->sendVerificationEmail($email, $firstName, $verificationToken);
+    
+    if (!$emailSent) {
+        error_log("Failed to send verification email to: $email");
+    }
+    
+    // Generate tokens (user can browse but some actions require verification)
     $tokens = JWT::generateTokenPair($user['id'], $user['email'], $user['role']);
     
     jsonResponse([
         'success' => true,
-        'message' => 'Registration successful',
+        'message' => 'Registration successful. Please check your email to verify your account.',
         'user' => $user,
-        'tokens' => $tokens
+        'tokens' => $tokens,
+        'email_verification_required' => true,
     ], 201);
     
 } catch (Exception $e) {
