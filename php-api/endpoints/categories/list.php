@@ -11,9 +11,12 @@ try {
     $db = $database->getConnection();
     
     $stmt = $db->query("
-        SELECT id, name, slug, description, image, created_at
-        FROM categories 
-        ORDER BY name ASC
+        SELECT c.id, c.name, c.slug, c.description, c.image, c.created_at,
+               COUNT(p.id) as product_count
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id
+        GROUP BY c.id, c.name, c.slug, c.description, c.image, c.created_at
+        ORDER BY c.name ASC
     ");
     
     $categories = $stmt->fetchAll();
