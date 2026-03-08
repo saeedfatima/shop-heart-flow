@@ -543,6 +543,19 @@ export interface AdminProductStats {
   out_of_stock: number;
 }
 
+export interface AnalyticsData {
+  summary: {
+    total_revenue: number;
+    total_orders: number;
+    total_customers: number;
+    conversion_rate: number;
+  };
+  revenue_by_day: { day: string; date: string; revenue: number }[];
+  orders_by_status: { status: string; count: number; percentage: number }[];
+  top_products: { id: number; name: string; sales: number; revenue: number }[];
+  top_categories: { name: string; revenue: number; percentage: number }[];
+}
+
 export const adminService = {
   async getStats(): Promise<AdminStats | null> {
     try {
