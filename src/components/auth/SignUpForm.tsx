@@ -62,9 +62,10 @@ export function SignUpForm({ onSwitchToLogin, redirectTo }: SignUpFormProps) {
     if (result.success) {
       toast({
         title: "Account created!",
-        description: result.message,
+        description: "Please check your email to verify your account.",
       });
-      navigate(redirectTo || '/dashboard');
+      // Redirect to verify email page instead of dashboard
+      navigate('/verify-email');
     } else {
       toast({
         title: "Sign up failed",

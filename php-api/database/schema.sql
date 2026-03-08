@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS users (
     tiktok VARCHAR(100),
     whatsapp VARCHAR(20),
     instagram VARCHAR(100),
+    email_verified BOOLEAN DEFAULT FALSE,
+    email_verification_token VARCHAR(64),
+    email_verification_expires DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -34,6 +34,8 @@ $routes = [
     'PUT /auth/update-profile' => 'endpoints/auth/update-profile.php',
     'POST /auth/user/avatar' => 'endpoints/auth/upload-avatar.php',
     'POST /auth/upload-avatar' => 'endpoints/auth/upload-avatar.php',
+    'GET /auth/verify-email' => 'endpoints/auth/verify-email.php',
+    'POST /auth/resend-verification' => 'endpoints/auth/resend-verification.php',
     
     // Categories
     'GET /categories' => 'endpoints/categories/list.php',
