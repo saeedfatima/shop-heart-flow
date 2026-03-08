@@ -126,7 +126,7 @@ const AdminCategories = () => {
     }
   };
 
-  const totalProducts = categories.length > 0 ? categories.length * 15 : 0;
+  const totalProducts = categories.reduce((sum, c) => sum + ((c as any).product_count || 0), 0);
   const avgProducts = categories.length > 0 ? Math.round(totalProducts / categories.length) : 0;
 
   const CategoryForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
@@ -258,8 +258,12 @@ const AdminCategories = () => {
                 <CardDescription className="text-xs">/{category.slug}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-muted-foreground mb-2">
                   {category.description || 'No description'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <Package className="h-3 w-3 inline mr-1" />
+                  {(category as any).product_count ?? 0} products
                 </p>
                 <div className="flex items-center justify-end">
                   <div className="flex gap-1">

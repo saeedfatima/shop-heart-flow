@@ -35,6 +35,7 @@ export interface Category {
   slug: string;
   description?: string;
   image?: string;
+  product_count?: number;
 }
 
 export interface ProductImage {
@@ -240,6 +241,7 @@ export const normalizeCategory = (c: any): Category => {
     slug: c.slug,
     description: c.description,
     image: c.image ? (c.image.startsWith('http') ? c.image : `${mediaBaseUrl}${c.image}`) : undefined,
+    product_count: c.product_count != null ? Number(c.product_count) : undefined,
   };
 };
 
