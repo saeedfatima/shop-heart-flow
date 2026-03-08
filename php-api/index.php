@@ -72,6 +72,10 @@ $routes = [
     'GET /admin/stats' => 'endpoints/admin/stats.php',
     'GET /admin/orders' => 'endpoints/admin/orders.php',
     'PATCH /admin/orders/{id}/status' => 'endpoints/admin/update-order-status.php',
+    'GET /admin/products' => 'endpoints/admin/products.php',
+    'DELETE /admin/products/{id}' => 'endpoints/admin/delete-product.php',
+    'GET /admin/customers' => 'endpoints/admin/customers.php',
+    'GET /admin/analytics' => 'endpoints/admin/analytics.php',
 ];
 
 // Match route
