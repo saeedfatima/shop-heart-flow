@@ -17,6 +17,7 @@ export interface User {
   whatsapp?: string;
   instagram?: string;
   created_at: string;
+  email_verified?: boolean;
 }
 
 interface AuthContextType {
