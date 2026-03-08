@@ -1,10 +1,43 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, TrendingUp, DollarSign, ShoppingCart, Users, Package, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, DollarSign, ShoppingCart, Users, Package, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { formatNaira, formatAdminCurrency } from "@/lib/currency";
+import { adminService, AdminStats } from "@/lib/apiServices";
 
 const AdminAnalytics = () => {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const data = await adminService.getStats();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const displayStats = stats || {
+    total_revenue: 0,
+    revenue_change: 0,
+    total_orders: 0,
+    orders_change: 0,
+    total_products: 0,
+    products_change: 0,
+    total_customers: 0,
+    customers_change: 0,
+  };
+
+  const revenueCurrency = formatAdminCurrency(displayStats.total_revenue);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -35,13 +68,19 @@ const AdminAnalytics = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <DollarSign className="h-5 w-5 text-muted-foreground" />
-              <span className="flex items-center text-xs text-green-600">
-                <ArrowUpRight className="h-3 w-3" />
-                12.5%
+              <span className={`flex items-center text-xs ${displayStats.revenue_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {displayStats.revenue_change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {Math.abs(displayStats.revenue_change)}%
               </span>
             </div>
-            <p className="text-2xl font-bold">₦67,846,500</p>
-            <p className="text-sm text-muted-foreground">~$45,231</p>
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <p className="text-2xl font-bold">{revenueCurrency.naira}</p>
+                <p className="text-sm text-muted-foreground">{revenueCurrency.usd}</p>
+              </>
+            )}
             <p className="text-xs text-muted-foreground">Total Revenue</p>
           </CardContent>
         </Card>
@@ -49,12 +88,12 @@ const AdminAnalytics = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-              <span className="flex items-center text-xs text-green-600">
-                <ArrowUpRight className="h-3 w-3" />
-                8.2%
+              <span className={`flex items-center text-xs ${displayStats.orders_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {displayStats.orders_change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {Math.abs(displayStats.orders_change)}%
               </span>
             </div>
-            <p className="text-2xl font-bold">2,350</p>
+            <p className="text-2xl font-bold">{loading ? '-' : displayStats.total_orders.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">Total Orders</p>
           </CardContent>
         </Card>
@@ -62,12 +101,12 @@ const AdminAnalytics = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Users className="h-5 w-5 text-muted-foreground" />
-              <span className="flex items-center text-xs text-green-600">
-                <ArrowUpRight className="h-3 w-3" />
-                15.3%
+              <span className={`flex items-center text-xs ${displayStats.customers_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {displayStats.customers_change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {Math.abs(displayStats.customers_change)}%
               </span>
             </div>
-            <p className="text-2xl font-bold">1,893</p>
+            <p className="text-2xl font-bold">{loading ? '-' : displayStats.total_customers.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">Total Customers</p>
           </CardContent>
         </Card>
@@ -75,13 +114,13 @@ const AdminAnalytics = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="h-5 w-5 text-muted-foreground" />
-              <span className="flex items-center text-xs text-red-600">
-                <ArrowDownRight className="h-3 w-3" />
-                2.1%
+              <span className={`flex items-center text-xs ${displayStats.products_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {displayStats.products_change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {Math.abs(displayStats.products_change)}%
               </span>
             </div>
-            <p className="text-2xl font-bold">3.2%</p>
-            <p className="text-xs text-muted-foreground">Conversion Rate</p>
+            <p className="text-2xl font-bold">{loading ? '-' : displayStats.total_products}</p>
+            <p className="text-xs text-muted-foreground">Total Products</p>
           </CardContent>
         </Card>
       </div>

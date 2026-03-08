@@ -662,6 +662,6 @@ export const adminService = {
   },
 
   async createProduct(data: FormData): Promise<ApiResponse<any>> {
-    return api.uploadFile('/admin/products/create/', data);
+    return api.uploadFile('/admin/products/create', data);
   },
 };
