@@ -1,14 +1,19 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { SignUpForm } from '@/components/auth/SignUpForm';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { ShoppingBag } from 'lucide-react';
 
 type AuthView = 'login' | 'signup' | 'forgot-password';
 
 const Auth = () => {
-  const [view, setView] = useState<AuthView>('login');
+  const [searchParams] = useSearchParams();
+  const defaultView = (searchParams.get('view') as AuthView) || 'login';
+  const redirectTo = searchParams.get('redirect');
+  const [view, setView] = useState<AuthView>(defaultView);
 
   return (
     <Layout>
@@ -20,6 +25,18 @@ const Auth = () => {
             transition={{ duration: 0.5 }}
             className="bg-card rounded-2xl p-8 card-shadow"
           >
+            {/* Checkout redirect notice */}
+            {redirectTo === '/checkout' && view !== 'forgot-password' && (
+              <div className="flex items-center gap-3 p-3 mb-6 rounded-lg bg-primary/10 border border-primary/20">
+                <ShoppingBag className="h-5 w-5 text-primary flex-shrink-0" />
+                <p className="text-sm text-foreground">
+                  {view === 'login'
+                    ? 'Please sign in to complete your purchase.'
+                    : 'Create an account to complete your purchase.'}
+                </p>
+              </div>
+            )}
+
             {/* Header */}
             {view !== 'forgot-password' && (
               <div className="text-center mb-8">
@@ -67,12 +84,14 @@ const Auth = () => {
                   key="login"
                   onForgotPassword={() => setView('forgot-password')}
                   onSwitchToSignUp={() => setView('signup')}
+                  redirectTo={redirectTo || undefined}
                 />
               )}
               {view === 'signup' && (
                 <SignUpForm
                   key="signup"
                   onSwitchToLogin={() => setView('login')}
+                  redirectTo={redirectTo || undefined}
                 />
               )}
               {view === 'forgot-password' && (
