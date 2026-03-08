@@ -49,7 +49,6 @@ const AdminProducts = () => {
   };
 
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
-
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.id.toLowerCase().includes(searchTerm.toLowerCase());
