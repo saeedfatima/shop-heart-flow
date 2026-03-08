@@ -57,14 +57,6 @@ const AdminProducts = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleSave = () => {
-    setIsDialogOpen(false);
-    toast({
-      title: "Product saved",
-      description: "The product has been saved successfully.",
-    });
-  };
-
   const handleDelete = async (productId: string) => {
     try {
       const { error } = await adminService.deleteProduct(productId);
