@@ -4,12 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Plus, Edit, Trash2, Package, Eye, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Search, Plus, Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import AdminProductForm from "@/components/admin/AdminProductForm";
 import { useToast } from "@/hooks/use-toast";
 import { formatNaira } from "@/lib/currency";
 import { adminService, AdminProduct, AdminProductStats } from "@/lib/apiServices";
@@ -50,21 +49,12 @@ const AdminProducts = () => {
   };
 
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
-
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
-
-  const handleSave = () => {
-    setIsDialogOpen(false);
-    toast({
-      title: "Product saved",
-      description: "The product has been saved successfully.",
-    });
-  };
 
   const handleDelete = async (productId: string) => {
     try {
@@ -98,59 +88,18 @@ const AdminProducts = () => {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[650px]">
             <DialogHeader>
               <DialogTitle>Add New Product</DialogTitle>
               <DialogDescription>Fill in the product details below.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Product Name</Label>
-                  <Input id="name" placeholder="Classic White Tee" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (₦)</Label>
-                  <Input id="price" type="number" placeholder="45000" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Stock</Label>
-                  <Input id="stock" type="number" placeholder="100" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Product description..." rows={3} />
-              </div>
-              <div className="space-y-2">
-                <Label>Product Images</Label>
-                <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
-                  <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop images here, or click to upload
-                  </p>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>Save Product</Button>
-            </DialogFooter>
+            <AdminProductForm
+              onSuccess={() => {
+                setIsDialogOpen(false);
+                fetchProducts();
+              }}
+              onCancel={() => setIsDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
