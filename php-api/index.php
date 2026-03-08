@@ -31,7 +31,9 @@ $routes = [
     'POST /auth/token/refresh' => 'endpoints/auth/refresh.php',
     'GET /auth/user' => 'endpoints/auth/user.php',
     'PUT /auth/user' => 'endpoints/auth/update-profile.php',
+    'PUT /auth/update-profile' => 'endpoints/auth/update-profile.php',
     'POST /auth/user/avatar' => 'endpoints/auth/upload-avatar.php',
+    'POST /auth/upload-avatar' => 'endpoints/auth/upload-avatar.php',
     
     // Categories
     'GET /categories' => 'endpoints/categories/list.php',
