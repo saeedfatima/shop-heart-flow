@@ -2,19 +2,25 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tag, Plus, Edit, Trash2, Package, Folder, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { categoryService, Category } from "@/lib/apiServices";
+import { categoryService, adminService, Category } from "@/lib/apiServices";
 
 const AdminCategories = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const { toast } = useToast();
+
+  const [formData, setFormData] = useState({ name: "", slug: "", description: "" });
 
   useEffect(() => {
     fetchCategories();
@@ -32,23 +38,136 @@ const AdminCategories = () => {
     }
   };
 
-  const totalProducts = categories.length > 0 ? categories.length * 15 : 0; // Estimate
+  const resetForm = () => {
+    setFormData({ name: "", slug: "", description: "" });
+  };
+
+  const generateSlug = (name: string) => {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  };
+
+  const handleNameChange = (name: string) => {
+    setFormData(prev => ({
+      ...prev,
+      name,
+      slug: prev.slug === generateSlug(prev.name) || prev.slug === '' ? generateSlug(name) : prev.slug,
+    }));
+  };
+
+  const handleCreate = async () => {
+    if (!formData.name || !formData.slug) {
+      toast({ title: "Validation error", description: "Name and slug are required.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await adminService.createCategory(formData);
+      if (error) {
+        toast({ title: "Error", description: error, variant: "destructive" });
+      } else {
+        toast({ title: "Category created", description: `"${formData.name}" has been created.` });
+        setIsCreateOpen(false);
+        resetForm();
+        fetchCategories();
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to create category.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEdit = (category: Category) => {
+    setEditingCategory(category);
+    setFormData({ name: category.name, slug: category.slug, description: category.description || "" });
+    setIsEditOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingCategory || !formData.name || !formData.slug) {
+      toast({ title: "Validation error", description: "Name and slug are required.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await adminService.updateCategory(editingCategory.id, formData);
+      if (error) {
+        toast({ title: "Error", description: error, variant: "destructive" });
+      } else {
+        toast({ title: "Category updated", description: `"${formData.name}" has been updated.` });
+        setIsEditOpen(false);
+        setEditingCategory(null);
+        resetForm();
+        fetchCategories();
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update category.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await adminService.deleteCategory(deleteTarget.id);
+      if (error) {
+        toast({ title: "Error", description: error, variant: "destructive" });
+      } else {
+        toast({ title: "Category deleted", description: data?.message || `"${deleteTarget.name}" has been deleted.` });
+        setCategories(prev => prev.filter(c => c.id !== deleteTarget.id));
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete category.", variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
+      setIsSubmitting(false);
+    }
+  };
+
+  const totalProducts = categories.length > 0 ? categories.length * 15 : 0;
   const avgProducts = categories.length > 0 ? Math.round(totalProducts / categories.length) : 0;
 
-  const handleSave = () => {
-    setIsDialogOpen(false);
-    toast({
-      title: "Category saved",
-      description: "The category has been saved successfully.",
-    });
-  };
-
-  const handleDelete = (categoryId: number) => {
-    toast({
-      title: "Category deleted",
-      description: "The category has been removed.",
-    });
-  };
+  const CategoryForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
+    <div className="grid gap-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="cat-name">Category Name</Label>
+        <Input
+          id="cat-name"
+          placeholder="T-Shirts"
+          value={formData.name}
+          onChange={(e) => handleNameChange(e.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="cat-slug">Slug</Label>
+        <Input
+          id="cat-slug"
+          placeholder="t-shirts"
+          value={formData.slug}
+          onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="cat-desc">Description</Label>
+        <Input
+          id="cat-desc"
+          placeholder="Category description..."
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+        />
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); resetForm(); }}>
+          Cancel
+        </Button>
+        <Button onClick={onSubmit} disabled={isSubmitting}>
+          {isSubmitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{submitLabel}...</> : submitLabel}
+        </Button>
+      </DialogFooter>
+    </div>
+  );
 
   return (
     <motion.div
@@ -61,7 +180,7 @@ const AdminCategories = () => {
           <h1 className="text-2xl font-bold text-foreground">Categories</h1>
           <p className="text-muted-foreground">Manage product categories</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -71,28 +190,9 @@ const AdminCategories = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Category</DialogTitle>
-              <DialogDescription>
-                Create a new product category.
-              </DialogDescription>
+              <DialogDescription>Create a new product category.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Category Name</Label>
-                <Input id="name" placeholder="T-Shirts" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug</Label>
-                <Input id="slug" placeholder="t-shirts" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input id="description" placeholder="Category description..." />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>Save Category</Button>
-            </DialogFooter>
+            <CategoryForm onSubmit={handleCreate} submitLabel="Create" />
           </DialogContent>
         </Dialog>
       </div>
@@ -163,14 +263,14 @@ const AdminCategories = () => {
                 </p>
                 <div className="flex items-center justify-end">
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(category)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 text-destructive"
-                      onClick={() => handleDelete(category.id)}
+                      onClick={() => setDeleteTarget(category)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -181,6 +281,36 @@ const AdminCategories = () => {
           ))}
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) { setEditingCategory(null); resetForm(); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>Update category details.</DialogDescription>
+          </DialogHeader>
+          <CategoryForm onSubmit={handleUpdate} submitLabel="Save" />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this category. Products in this category will become uncategorized. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };
