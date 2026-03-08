@@ -9,11 +9,12 @@ import { GoogleAuthButton } from './GoogleAuthButton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
-interface SignUpFormProps {
+export interface SignUpFormProps {
   onSwitchToLogin: () => void;
+  redirectTo?: string;
 }
 
-export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
+export function SignUpForm({ onSwitchToLogin, redirectTo }: SignUpFormProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -63,7 +64,7 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
         title: "Account created!",
         description: result.message,
       });
-      navigate('/dashboard');
+      navigate(redirectTo || '/dashboard');
     } else {
       toast({
         title: "Sign up failed",

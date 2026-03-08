@@ -1,8 +1,8 @@
 // Checkout page with form and order summary - integrated with PHP API
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CreditCard, Lock } from 'lucide-react';
+import { CreditCard, Lock, LogIn, UserPlus } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,68 +107,38 @@ const Checkout = () => {
         addressId = newAddress.id;
       }
 
-      // Create order via API if authenticated
-      if (isAuthenticated && addressId) {
-        const orderItems = items.map(item => ({
-          product_id: Number(item.product.id),
-          quantity: item.quantity,
-          color: item.selectedColor?.name,
-          size: item.selectedSize?.name,
-        }));
+      // Create order via API
+      const orderItems = items.map(item => ({
+        product_id: Number(item.product.id),
+        quantity: item.quantity,
+        color: item.selectedColor?.name,
+        size: item.selectedSize?.name,
+      }));
 
-        const { data: order, error } = await orderService.create({
-          items: orderItems,
-          shipping_address_id: addressId,
-        });
+      const { data: order, error } = await orderService.create({
+        items: orderItems,
+        shipping_address_id: addressId!,
+      });
 
-        if (error || !order) {
-          toast({
-            title: 'Order failed',
-            description: error || 'Failed to create order. Please try again.',
-            variant: 'destructive',
-          });
-          setIsProcessing(false);
-          return;
-        }
-
-        clearCart();
-        setIsProcessing(false);
-
+      if (error || !order) {
         toast({
-          title: 'Order placed successfully!',
-          description: `Your order #${order.order_number} has been confirmed.`,
+          title: 'Order failed',
+          description: error || 'Failed to create order. Please try again.',
+          variant: 'destructive',
         });
-
-        navigate(`/order-confirmation/${order.order_number}`);
-      } else {
-        // Guest checkout - store in localStorage (demo mode)
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
-        const order = {
-          id: orderId,
-          items,
-          subtotal: getSubtotal(),
-          shipping: getShipping(),
-          total: getTotal(),
-          status: 'paid',
-          customerInfo: formData,
-          createdAt: new Date().toISOString(),
-        };
-
-        const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-        localStorage.setItem('orders', JSON.stringify([...existingOrders, order]));
-
-        clearCart();
         setIsProcessing(false);
-
-        toast({
-          title: 'Order placed successfully!',
-          description: `Your order #${orderId} has been confirmed.`,
-        });
-
-        navigate(`/order-confirmation/${orderId}`);
+        return;
       }
+
+      clearCart();
+      setIsProcessing(false);
+
+      toast({
+        title: 'Order placed successfully!',
+        description: `Your order #${order.order_number} has been confirmed.`,
+      });
+
+      navigate(`/order-confirmation/${order.order_number}`);
     } catch (error) {
       toast({
         title: 'Error',
@@ -182,6 +152,47 @@ const Checkout = () => {
   if (items.length === 0) {
     navigate('/cart');
     return null;
+  }
+
+  // If not authenticated, show auth gate instead of checkout form
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <div className="container py-12 md:py-20">
+          <div className="max-w-md mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-card rounded-2xl p-8 card-shadow"
+            >
+              <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h1 className="text-2xl font-semibold mb-2">Sign in to continue</h1>
+              <p className="text-muted-foreground mb-6">
+                Please sign in or create an account to complete your purchase. Your cart items will be saved.
+              </p>
+              <div className="space-y-3">
+                <Button asChild className="w-full" size="lg">
+                  <Link to="/auth?redirect=/checkout&view=login">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full" size="lg">
+                  <Link to="/auth?redirect=/checkout&view=signup">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Account
+                  </Link>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                Your {items.length} cart item{items.length !== 1 ? 's' : ''} will be waiting for you.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   const subtotal = getSubtotal();

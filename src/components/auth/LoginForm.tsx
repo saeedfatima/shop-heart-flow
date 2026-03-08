@@ -9,12 +9,13 @@ import { GoogleAuthButton } from './GoogleAuthButton';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
-interface LoginFormProps {
+export interface LoginFormProps {
   onForgotPassword: () => void;
   onSwitchToSignUp: () => void;
+  redirectTo?: string;
 }
 
-export function LoginForm({ onForgotPassword, onSwitchToSignUp }: LoginFormProps) {
+export function LoginForm({ onForgotPassword, onSwitchToSignUp, redirectTo }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,11 +36,15 @@ export function LoginForm({ onForgotPassword, onSwitchToSignUp }: LoginFormProps
         title: "Welcome back!",
         description: result.message,
       });
-      // Redirect based on user role (admin goes to /admin, user goes to /dashboard)
-      const storedUser = localStorage.getItem('mockAuthUser');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+      // Redirect to specified page, or role-based default
+      if (redirectTo) {
+        navigate(redirectTo);
+      } else {
+        const storedUser = localStorage.getItem('mockAuthUser');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+        }
       }
     } else {
       toast({
