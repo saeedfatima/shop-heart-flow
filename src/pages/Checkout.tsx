@@ -1,8 +1,8 @@
 // Checkout page with form and order summary - integrated with PHP API
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CreditCard, Lock } from 'lucide-react';
+import { CreditCard, Lock, LogIn, UserPlus } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -182,6 +182,47 @@ const Checkout = () => {
   if (items.length === 0) {
     navigate('/cart');
     return null;
+  }
+
+  // If not authenticated, show auth gate instead of checkout form
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <div className="container py-12 md:py-20">
+          <div className="max-w-md mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-card rounded-2xl p-8 card-shadow"
+            >
+              <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h1 className="text-2xl font-semibold mb-2">Sign in to continue</h1>
+              <p className="text-muted-foreground mb-6">
+                Please sign in or create an account to complete your purchase. Your cart items will be saved.
+              </p>
+              <div className="space-y-3">
+                <Button asChild className="w-full" size="lg">
+                  <Link to="/auth?redirect=/checkout&view=login">
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full" size="lg">
+                  <Link to="/auth?redirect=/checkout&view=signup">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Account
+                  </Link>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                Your {items.length} cart item{items.length !== 1 ? 's' : ''} will be waiting for you.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   const subtotal = getSubtotal();
