@@ -107,68 +107,38 @@ const Checkout = () => {
         addressId = newAddress.id;
       }
 
-      // Create order via API if authenticated
-      if (isAuthenticated && addressId) {
-        const orderItems = items.map(item => ({
-          product_id: Number(item.product.id),
-          quantity: item.quantity,
-          color: item.selectedColor?.name,
-          size: item.selectedSize?.name,
-        }));
+      // Create order via API
+      const orderItems = items.map(item => ({
+        product_id: Number(item.product.id),
+        quantity: item.quantity,
+        color: item.selectedColor?.name,
+        size: item.selectedSize?.name,
+      }));
 
-        const { data: order, error } = await orderService.create({
-          items: orderItems,
-          shipping_address_id: addressId,
-        });
+      const { data: order, error } = await orderService.create({
+        items: orderItems,
+        shipping_address_id: addressId!,
+      });
 
-        if (error || !order) {
-          toast({
-            title: 'Order failed',
-            description: error || 'Failed to create order. Please try again.',
-            variant: 'destructive',
-          });
-          setIsProcessing(false);
-          return;
-        }
-
-        clearCart();
-        setIsProcessing(false);
-
+      if (error || !order) {
         toast({
-          title: 'Order placed successfully!',
-          description: `Your order #${order.order_number} has been confirmed.`,
+          title: 'Order failed',
+          description: error || 'Failed to create order. Please try again.',
+          variant: 'destructive',
         });
-
-        navigate(`/order-confirmation/${order.order_number}`);
-      } else {
-        // Guest checkout - store in localStorage (demo mode)
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
-        const order = {
-          id: orderId,
-          items,
-          subtotal: getSubtotal(),
-          shipping: getShipping(),
-          total: getTotal(),
-          status: 'paid',
-          customerInfo: formData,
-          createdAt: new Date().toISOString(),
-        };
-
-        const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-        localStorage.setItem('orders', JSON.stringify([...existingOrders, order]));
-
-        clearCart();
         setIsProcessing(false);
-
-        toast({
-          title: 'Order placed successfully!',
-          description: `Your order #${orderId} has been confirmed.`,
-        });
-
-        navigate(`/order-confirmation/${orderId}`);
+        return;
       }
+
+      clearCart();
+      setIsProcessing(false);
+
+      toast({
+        title: 'Order placed successfully!',
+        description: `Your order #${order.order_number} has been confirmed.`,
+      });
+
+      navigate(`/order-confirmation/${order.order_number}`);
     } catch (error) {
       toast({
         title: 'Error',
