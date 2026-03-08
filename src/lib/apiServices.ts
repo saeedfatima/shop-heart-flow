@@ -687,4 +687,16 @@ export const adminService = {
       return null;
     }
   },
+
+  async createCategory(data: { name: string; slug: string; description?: string; image?: string }): Promise<ApiResponse<any>> {
+    return api.post<any>('/admin/categories/create', data);
+  },
+
+  async updateCategory(id: number, data: Partial<{ name: string; slug: string; description: string; image: string }>): Promise<ApiResponse<any>> {
+    return api.put<any>(`/admin/categories/${id}`, data);
+  },
+
+  async deleteCategory(id: number): Promise<ApiResponse<any>> {
+    return api.delete<any>(`/admin/categories/${id}`);
+  },
 };
