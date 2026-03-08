@@ -106,7 +106,7 @@ const UserProfile = () => {
         const formData = new FormData();
         formData.append('avatar', avatarFile);
         
-        const { error: uploadError } = await api.uploadFile('/auth/user/avatar', formData);
+        const { error: uploadError } = await api.uploadFile('/auth/upload-avatar', formData);
         
         if (uploadError) {
           toast({

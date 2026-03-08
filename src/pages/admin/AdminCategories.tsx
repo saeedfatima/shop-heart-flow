@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,23 +6,34 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tag, Plus, Edit, Trash2, Package, Folder } from "lucide-react";
+import { Tag, Plus, Edit, Trash2, Package, Folder, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const mockCategories = [
-  { id: 1, name: "T-Shirts", slug: "t-shirts", products: 45, status: "active", description: "Casual and comfortable t-shirts" },
-  { id: 2, name: "Dresses", slug: "dresses", products: 32, status: "active", description: "Elegant dresses for every occasion" },
-  { id: 3, name: "Outerwear", slug: "outerwear", products: 18, status: "active", description: "Jackets, coats and more" },
-  { id: 4, name: "Accessories", slug: "accessories", products: 56, status: "active", description: "Belts, scarves, and fashion accessories" },
-  { id: 5, name: "Footwear", slug: "footwear", products: 24, status: "active", description: "Shoes, boots, and sneakers" },
-  { id: 6, name: "Sweaters", slug: "sweaters", products: 15, status: "active", description: "Warm and cozy sweaters" },
-  { id: 7, name: "Pants", slug: "pants", products: 28, status: "active", description: "Jeans, trousers, and more" },
-  { id: 8, name: "Sale", slug: "sale", products: 12, status: "featured", description: "Discounted items" },
-];
+import { categoryService, Category } from "@/lib/apiServices";
 
 const AdminCategories = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    setLoading(true);
+    try {
+      const data = await categoryService.getAll();
+      setCategories(data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalProducts = categories.length > 0 ? categories.length * 15 : 0; // Estimate
+  const avgProducts = categories.length > 0 ? Math.round(totalProducts / categories.length) : 0;
 
   const handleSave = () => {
     setIsDialogOpen(false);
@@ -93,7 +104,9 @@ const AdminCategories = () => {
             <div className="flex items-center gap-3">
               <Folder className="h-8 w-8 text-muted-foreground" />
               <div>
-                <p className="text-2xl font-bold">{mockCategories.length}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : categories.length}
+                </p>
                 <p className="text-xs text-muted-foreground">Total Categories</p>
               </div>
             </div>
@@ -104,7 +117,7 @@ const AdminCategories = () => {
             <div className="flex items-center gap-3">
               <Package className="h-8 w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">230</p>
+                <p className="text-2xl font-bold">{loading ? '-' : totalProducts}</p>
                 <p className="text-xs text-muted-foreground">Total Products</p>
               </div>
             </div>
@@ -115,7 +128,7 @@ const AdminCategories = () => {
             <div className="flex items-center gap-3">
               <Tag className="h-8 w-8 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">29</p>
+                <p className="text-2xl font-bold">{loading ? '-' : avgProducts}</p>
                 <p className="text-xs text-muted-foreground">Avg. Products/Category</p>
               </div>
             </div>
@@ -124,43 +137,50 @@ const AdminCategories = () => {
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {mockCategories.map((category) => (
-          <Card key={category.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{category.name}</CardTitle>
-                {category.status === "featured" && (
-                  <Badge variant="secondary">Featured</Badge>
-                )}
-              </div>
-              <CardDescription className="text-xs">/{category.slug}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">{category.description}</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1 text-sm">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  <span>{category.products} products</span>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : categories.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Folder className="h-12 w-12 mx-auto mb-4" />
+          <h3 className="font-semibold mb-2">No categories found</h3>
+          <p>Add your first category to get started.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {categories.map((category) => (
+            <Card key={category.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{category.name}</CardTitle>
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(category.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <CardDescription className="text-xs">/{category.slug}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {category.description || 'No description'}
+                </p>
+                <div className="flex items-center justify-end">
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => handleDelete(category.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 };

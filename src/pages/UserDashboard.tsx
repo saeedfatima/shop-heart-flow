@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, Navigate, Routes, Route, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { useAuth } from "@/context/AuthContext";
+import { formatNaira } from "@/lib/currency";
+import { orderService, addressService, wishlistService, Order, Address, WishlistItem } from "@/lib/apiServices";
 import { 
   Package, 
   MapPin, 
@@ -14,7 +17,8 @@ import {
   ShoppingBag,
   ChevronRight,
   Calendar,
-  CreditCard
+  CreditCard,
+  Loader2
 } from "lucide-react";
 
 // Import sub-pages
@@ -25,60 +29,7 @@ import UserProfile from "@/pages/dashboard/UserProfile";
 import UserPayments from "@/pages/dashboard/UserPayments";
 import UserSettings from "@/pages/dashboard/UserSettings";
 
-// Mock data
-const mockRecentOrders = [
-  { 
-    id: "ORD-2024-001", 
-    date: "Jan 15, 2024", 
-    total: 299.99, 
-    status: "delivered",
-    items: 3,
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop"
-  },
-  { 
-    id: "ORD-2024-002", 
-    date: "Jan 10, 2024", 
-    total: 159.50, 
-    status: "shipped",
-    items: 2,
-    image: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=100&h=100&fit=crop"
-  },
-  { 
-    id: "ORD-2024-003", 
-    date: "Jan 5, 2024", 
-    total: 89.99, 
-    status: "processing",
-    items: 1,
-    image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=100&h=100&fit=crop"
-  },
-];
-
-const mockAddresses = [
-  { 
-    id: 1, 
-    type: "Home", 
-    address: "123 Main Street, Apt 4B", 
-    city: "New York", 
-    state: "NY", 
-    zip: "10001",
-    isDefault: true 
-  },
-  { 
-    id: 2, 
-    type: "Work", 
-    address: "456 Business Ave, Suite 200", 
-    city: "New York", 
-    state: "NY", 
-    zip: "10018",
-    isDefault: false 
-  },
-];
-
-const mockWishlist = [
-  { id: 1, name: "Cashmere Sweater", price: 129.99, image: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=100&h=100&fit=crop" },
-  { id: 2, name: "Leather Boots", price: 189.99, image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop" },
-  { id: 3, name: "Silk Scarf", price: 59.99, image: "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=100&h=100&fit=crop" },
-];
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -91,6 +42,31 @@ const getStatusColor = (status: string) => {
 
 const DashboardOverview = () => {
   const { user } = useAuth();
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [ordersData, addressesData, wishlistData] = await Promise.all([
+          orderService.getAll(),
+          addressService.getAll(),
+          wishlistService.getAll(),
+        ]);
+        setRecentOrders(ordersData.slice(0, 3));
+        setAddresses(addressesData.slice(0, 2));
+        setWishlistCount(wishlistData.length);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
   
   return (
     <motion.div
@@ -102,7 +78,7 @@ const DashboardOverview = () => {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={user?.avatar} />
+            <AvatarImage src={user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${API_BASE_URL}${user.avatar}`) : undefined} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xl">
               {user?.first_name?.[0]}{user?.last_name?.[0]}
             </AvatarFallback>
@@ -111,7 +87,7 @@ const DashboardOverview = () => {
             <h1 className="text-3xl font-bold text-foreground">
               Welcome back, {user?.first_name}!
             </h1>
-            <p className="text-muted-foreground">Member since {user?.created_at}</p>
+            <p className="text-muted-foreground">Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p>
           </div>
         </div>
       </div>
@@ -154,7 +130,9 @@ const DashboardOverview = () => {
               </div>
               <div>
                 <p className="font-medium">Wishlist</p>
-                <p className="text-sm text-muted-foreground">{mockWishlist.length} items</p>
+                <p className="text-sm text-muted-foreground">
+                  {loading ? '...' : `${wishlistCount} items`}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -191,36 +169,45 @@ const DashboardOverview = () => {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockRecentOrders.map((order) => (
-                <div 
-                  key={order.id}
-                  className="flex items-center gap-4 p-4 bg-secondary/50 rounded-lg"
-                >
-                  <img 
-                    src={order.image} 
-                    alt="Order item"
-                    className="w-16 h-16 object-cover rounded-md"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-medium text-sm">{order.id}</p>
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {order.date}
-                      </span>
-                      <span>{order.items} item{order.items > 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">${order.total.toFixed(2)}</p>
-                  </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ))}
+              ) : recentOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-10 w-10 mx-auto mb-2" />
+                  <p>No orders yet. Start shopping!</p>
+                </div>
+              ) : (
+                recentOrders.map((order) => (
+                  <div 
+                    key={order.id}
+                    className="flex items-center gap-4 p-4 bg-secondary/50 rounded-lg"
+                  >
+                    <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
+                      <Package className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-sm">{order.order_number}</p>
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </span>
+                        <span>{order.items?.length || 0} item{(order.items?.length || 0) > 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">{formatNaira(order.total)}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -236,20 +223,28 @@ const DashboardOverview = () => {
               </Link>
             </CardHeader>
             <CardContent className="space-y-3">
-              {mockAddresses.map((address) => (
-                <div key={address.id} className="p-3 bg-secondary/50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-1">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <span className="font-medium text-sm">{address.type}</span>
-                    {address.isDefault && (
-                      <Badge variant="outline" className="text-xs">Default</Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground pl-6">
-                    {address.address}, {address.city}, {address.state} {address.zip}
-                  </p>
+              {loading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
-              ))}
+              ) : addresses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No addresses saved yet.</p>
+              ) : (
+                addresses.map((address) => (
+                  <div key={address.id} className="p-3 bg-secondary/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">{address.label}</span>
+                      {address.is_default && (
+                        <Badge variant="outline" className="text-xs">Default</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground pl-6">
+                      {address.street_address}, {address.city}, {address.state} {address.postal_code}
+                    </p>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -263,7 +258,7 @@ const DashboardOverview = () => {
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Payment Methods</p>
-                  <p className="text-xs text-muted-foreground">•••• 4242</p>
+                  <p className="text-xs text-muted-foreground">Manage your cards</p>
                 </div>
               </div>
               <Link to="/dashboard/profile">

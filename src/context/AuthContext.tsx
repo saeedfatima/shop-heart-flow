@@ -46,9 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const { data } = await api.get<{ success: boolean; user: User }>('/auth/user');
-      if (data?.success) {
-        setUser(data.user);
+      const { data } = await api.get<any>('/auth/user');
+      if (data) {
+        // PHP returns user object directly, or wrapped in {success, user}
+        const userData = data.user || data;
+        if (userData?.id) {
+          setUser(userData);
+        }
       }
     } catch {
       // Server not available - silently fail
@@ -117,14 +121,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (profileData: Partial<User>) => {
-    const { data, error } = await api.put<{ success: boolean; message: string; user: User }>(
-      '/auth/user',
+    const { data, error } = await api.put<any>(
+      '/auth/update-profile',
       profileData
     );
     
-    if (data?.success) {
-      setUser(data.user);
-      return { success: true, message: data.message };
+    if (data) {
+      // PHP may return {success, user} or {success, message}
+      const userData = data.user || data;
+      if (userData?.id) {
+        setUser(userData);
+      }
+      return { success: true, message: data.message || 'Profile updated' };
     }
     
     return { success: false, message: error || 'Update failed' };
