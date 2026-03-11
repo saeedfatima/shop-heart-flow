@@ -39,13 +39,30 @@ try {
     $orderItems = [];
     
     foreach ($data['items'] as $item) {
+        if (!is_array($item)) {
+            $db->rollBack();
+            errorResponse('Invalid item format', 422);
+        }
+        if (!isset($item['product_id'], $item['quantity'])) {
+            $db->rollBack();
+            errorResponse('Each item must include product_id and quantity', 422);
+        }
+
+        $productId = (int)$item['product_id'];
+        $quantity = (int)$item['quantity'];
+
+        if ($productId <= 0 || $quantity <= 0) {
+            $db->rollBack();
+            errorResponse('Invalid product_id or quantity', 422);
+        }
+
         $stmt = $db->prepare("SELECT id, name, price, in_stock FROM products WHERE id = ?");
-        $stmt->execute([$item['product_id']]);
+        $stmt->execute([$productId]);
         $product = $stmt->fetch();
         
         if (!$product) {
             $db->rollBack();
-            errorResponse("Product not found: {$item['product_id']}");
+            errorResponse("Product not found: {$productId}");
         }
         
         if (!$product['in_stock']) {
@@ -53,12 +70,12 @@ try {
             errorResponse("Product out of stock: {$product['name']}");
         }
         
-        $itemTotal = $product['price'] * $item['quantity'];
+        $itemTotal = $product['price'] * $quantity;
         $subtotal += $itemTotal;
         
         $orderItems[] = [
             'product_id' => $product['id'],
-            'quantity' => $item['quantity'],
+            'quantity' => $quantity,
             'price' => $product['price'],
             'color' => $item['color'] ?? null,
             'size' => $item['size'] ?? null
@@ -119,8 +136,8 @@ try {
     
     jsonResponse($order, 201);
     
-} catch (Exception $e) {
-    if ($db->inTransaction()) {
+} catch (Throwable $e) {
+    if (($db ?? null) instanceof PDO && $db->inTransaction()) {
         $db->rollBack();
     }
     error_log("Create order error: " . $e->getMessage());

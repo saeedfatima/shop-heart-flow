@@ -93,16 +93,28 @@ class ApiClient {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/auth/refresh`, {
+      const response = await fetch(`${this.baseUrl}/auth/token/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh: refreshToken }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('accessToken', data.access);
-        return true;
+        const raw = await response.text();
+        let data: any = null;
+        try {
+          data = raw ? JSON.parse(raw) : null;
+        } catch {
+          data = null;
+        }
+
+        if (data?.access && typeof data.access === 'string') {
+          localStorage.setItem('accessToken', data.access);
+          return true;
+        }
+
+        this.clearTokens();
+        return false;
       }
 
       this.clearTokens();
@@ -156,17 +168,38 @@ class ApiClient {
         }
       }
 
-      const data = await response.json();
+      const raw = await response.text();
+      let data: unknown = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = raw;
+      }
+
+      // Successful responses from this backend should always be JSON.
+      if (response.ok && typeof data === 'string') {
+        return { data: null, error: 'Unexpected non-JSON response from server.' };
+      }
 
       if (!response.ok) {
         console.warn('[PHP API] Error response:', response.status, data);
-        const errorMessage = data.message || data.error || 
-          (data.errors ? Object.values(data.errors).flat().join(', ') : 'Request failed');
+
+        let errorMessage = 'Request failed';
+        if (data && typeof data === 'object') {
+          const obj = data as any;
+          errorMessage =
+            obj.message ||
+            obj.error ||
+            (obj.errors ? Object.values(obj.errors).flat().join(', ') : errorMessage);
+        } else if (typeof data === 'string' && data.trim()) {
+          // Usually means the server returned HTML (PHP error/404 page) or plain text.
+          errorMessage = `Unexpected response: ${data.trim().slice(0, 200)}`;
+        }
         return { data: null, error: errorMessage };
       }
 
       console.log('[PHP API] Success:', endpoint);
-      return { data, error: null };
+      return { data: data as T, error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Network error';
       console.warn('[PHP API] Network error:', endpoint, errorMessage);

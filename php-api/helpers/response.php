@@ -47,7 +47,22 @@ function getRequestBody() {
 function validateRequired($data, $fields) {
     $errors = [];
     foreach ($fields as $field) {
-        if (!isset($data[$field]) || trim($data[$field]) === '') {
+        // Use array_key_exists so `0` and `false` are treated as present values.
+        if (!is_array($data) || !array_key_exists($field, $data) || $data[$field] === null) {
+            $errors[$field] = "$field is required";
+            continue;
+        }
+
+        $value = $data[$field];
+
+        // Strings: empty/whitespace-only is missing
+        if (is_string($value) && trim($value) === '') {
+            $errors[$field] = "$field is required";
+            continue;
+        }
+
+        // Arrays: empty array is missing (useful for required list fields like `items`)
+        if (is_array($value) && count($value) === 0) {
             $errors[$field] = "$field is required";
         }
     }

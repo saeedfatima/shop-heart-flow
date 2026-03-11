@@ -1,4 +1,5 @@
 // Cart item component for cart page
+import { forwardRef } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CartItem as CartItemType } from '@/types/product';
@@ -10,7 +11,7 @@ interface CartItemProps {
   item: CartItemType;
 }
 
-export function CartItem({ item }: CartItemProps) {
+export const CartItem = forwardRef<HTMLDivElement, CartItemProps>(({ item }, ref) => {
   const { updateQuantity, removeFromCart } = useCart();
   const { product, quantity, selectedColor, selectedSize } = item;
 
@@ -24,6 +25,7 @@ export function CartItem({ item }: CartItemProps) {
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
@@ -94,4 +96,6 @@ export function CartItem({ item }: CartItemProps) {
       </div>
     </motion.div>
   );
-}
+});
+
+CartItem.displayName = 'CartItem';
