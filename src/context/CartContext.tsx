@@ -132,7 +132,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const getShipping = () => {
     const subtotal = getSubtotal();
     // Free shipping over $100
-    return subtotal > 100 ? 0 : 12;
+    return subtotal >= 100 ? 0 : 10;
   };
 
   const getTotal = () => {
