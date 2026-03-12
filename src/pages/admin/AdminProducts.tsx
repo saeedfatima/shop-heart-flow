@@ -237,7 +237,9 @@ const AdminProducts = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(product.id)} disabled={editLoading === product.id}>
+                        {editLoading === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit className="h-4 w-4" />}
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
