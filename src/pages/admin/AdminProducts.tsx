@@ -105,24 +105,27 @@ const AdminProducts = () => {
           <h1 className="text-2xl font-bold text-foreground">Products Management</h1>
           <p className="text-muted-foreground">Add, edit, and manage your products</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setEditingProduct(null); }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={openCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[650px]">
             <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>Fill in the product details below.</DialogDescription>
+              <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+              <DialogDescription>{editingProduct ? "Update the product details below." : "Fill in the product details below."}</DialogDescription>
             </DialogHeader>
             <AdminProductForm
+              key={editingProduct?.id || 'create'}
+              editProduct={editingProduct || undefined}
               onSuccess={() => {
                 setIsDialogOpen(false);
+                setEditingProduct(null);
                 fetchProducts();
               }}
-              onCancel={() => setIsDialogOpen(false)}
+              onCancel={() => { setIsDialogOpen(false); setEditingProduct(null); }}
             />
           </DialogContent>
         </Dialog>
