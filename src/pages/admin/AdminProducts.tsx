@@ -11,7 +11,7 @@ import { Search, Plus, Edit, Trash2, Eye, Loader2 } from "lucide-react";
 import AdminProductForm from "@/components/admin/AdminProductForm";
 import { useToast } from "@/hooks/use-toast";
 import { formatNaira } from "@/lib/currency";
-import { adminService, AdminProduct, AdminProductStats } from "@/lib/apiServices";
+import { adminService, AdminProduct, AdminProductStats, Product } from "@/lib/apiServices";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -29,6 +29,8 @@ const AdminProducts = () => {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [stats, setStats] = useState<AdminProductStats>({ total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0 });
   const [loading, setLoading] = useState(true);
+  const [editingProduct, setEditingProduct] = useState<(Product & { _rawImages?: any[] }) | null>(null);
+  const [editLoading, setEditLoading] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
