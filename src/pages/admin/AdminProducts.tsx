@@ -72,6 +72,28 @@ const AdminProducts = () => {
     }
   };
 
+  const handleEdit = async (productId: string) => {
+    setEditLoading(productId);
+    try {
+      const product = await adminService.getProductDetail(productId);
+      if (product) {
+        setEditingProduct(product as Product & { _rawImages?: any[] });
+        setIsDialogOpen(true);
+      } else {
+        toast({ title: "Error", description: "Could not load product details.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to load product.", variant: "destructive" });
+    } finally {
+      setEditLoading(null);
+    }
+  };
+
+  const openCreateDialog = () => {
+    setEditingProduct(null);
+    setIsDialogOpen(true);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
