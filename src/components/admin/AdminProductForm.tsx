@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 import { ImagePlus, X, Loader2, Plus } from "lucide-react";
-import { adminService, categoryService, Category } from "@/lib/apiServices";
+import { adminService, categoryService, Category, Product } from "@/lib/apiServices";
 import { useToast } from "@/hooks/use-toast";
 
 interface ColorInput {
@@ -21,16 +21,24 @@ interface SizeInput {
   inStock: boolean;
 }
 
+interface ExistingImage {
+  id: number;
+  image: string;
+  alt_text?: string;
+}
+
 interface AdminProductFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  editProduct?: Product & { _rawImages?: ExistingImage[] };
 }
 
 const PRESET_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
-const AdminProductForm = ({ onSuccess, onCancel }: AdminProductFormProps) => {
+const AdminProductForm = ({ onSuccess, onCancel, editProduct }: AdminProductFormProps) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isEditMode = !!editProduct;
 
   // Form state
   const [name, setName] = useState("");
@@ -44,6 +52,8 @@ const AdminProductForm = ({ onSuccess, onCancel }: AdminProductFormProps) => {
   // Images
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [deleteImageIds, setDeleteImageIds] = useState<number[]>([]);
 
   // Colors
   const [colors, setColors] = useState<ColorInput[]>([]);
@@ -60,6 +70,23 @@ const AdminProductForm = ({ onSuccess, onCancel }: AdminProductFormProps) => {
   useEffect(() => {
     categoryService.getAll().then(setCategories);
   }, []);
+
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (!editProduct) return;
+    setName(editProduct.name || "");
+    setPrice(String(editProduct.price || ""));
+    setOriginalPrice(editProduct.original_price || editProduct.originalPrice ? String(editProduct.original_price || editProduct.originalPrice) : "");
+    setDescription(editProduct.description || "");
+    setCategoryId(editProduct.category_id ? String(editProduct.category_id) : "");
+    setInStock(editProduct.inStock ?? editProduct.in_stock ?? true);
+    setFeatured(editProduct.featured ?? false);
+    setColors(editProduct.colors || []);
+    setSizes((editProduct.sizes || []).map(s => ({ name: s.name, inStock: s.inStock })));
+    if (editProduct._rawImages) {
+      setExistingImages(editProduct._rawImages);
+    }
+  }, [editProduct]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -79,9 +106,14 @@ const AdminProductForm = ({ onSuccess, onCancel }: AdminProductFormProps) => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeImage = (index: number) => {
+  const removeNewImage = (index: number) => {
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (imageId: number) => {
+    setDeleteImageIds((prev) => [...prev, imageId]);
+    setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
   };
 
   const addColor = () => {
@@ -136,20 +168,33 @@ const AdminProductForm = ({ onSuccess, onCancel }: AdminProductFormProps) => {
         formData.append("sizes", JSON.stringify(sizes));
       }
 
-      const result = await adminService.createProduct(formData);
+      let result;
+      if (isEditMode) {
+        if (deleteImageIds.length > 0) {
+          formData.append("delete_images", JSON.stringify(deleteImageIds));
+        }
+        result = await adminService.updateProduct(editProduct!.id, formData);
+      } else {
+        result = await adminService.createProduct(formData);
+      }
 
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
-        toast({ title: "Product Created", description: `"${name}" has been added successfully.` });
+        toast({
+          title: isEditMode ? "Product Updated" : "Product Created",
+          description: `"${name}" has been ${isEditMode ? 'updated' : 'added'} successfully.`,
+        });
         onSuccess();
       }
     } catch {
-      toast({ title: "Error", description: "Failed to create product.", variant: "destructive" });
+      toast({ title: "Error", description: `Failed to ${isEditMode ? 'update' : 'create'} product.`, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
+
+  const mediaBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || '';
 
   return (
     <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
@@ -208,12 +253,29 @@ const AdminProductForm = ({ onSuccess, onCancel }: AdminProductFormProps) => {
       <div className="space-y-2">
         <Label>Product Images</Label>
         <div className="flex flex-wrap gap-3">
+          {/* Existing images (edit mode) */}
+          {existingImages.map((img) => {
+            const src = img.image.startsWith('http') ? img.image : `${mediaBaseUrl}${img.image}`;
+            return (
+              <div key={`existing-${img.id}`} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+                <img src={src} alt={img.alt_text || 'Product'} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeExistingImage(img.id)}
+                  className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })}
+          {/* New image previews */}
           {imagePreviews.map((src, i) => (
-            <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
+            <div key={`new-${i}`} className="relative w-20 h-20 rounded-lg overflow-hidden border border-primary/50 group">
               <img src={src} alt={`Preview ${i}`} className="w-full h-full object-cover" />
               <button
                 type="button"
-                onClick={() => removeImage(i)}
+                onClick={() => removeNewImage(i)}
                 className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X className="h-3 w-3" />
@@ -297,7 +359,7 @@ const AdminProductForm = ({ onSuccess, onCancel }: AdminProductFormProps) => {
         <Button variant="outline" onClick={onCancel} disabled={submitting}>Cancel</Button>
         <Button onClick={handleSubmit} disabled={submitting}>
           {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          Create Product
+          {isEditMode ? "Update Product" : "Create Product"}
         </Button>
       </DialogFooter>
     </div>

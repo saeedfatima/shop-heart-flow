@@ -680,6 +680,44 @@ export const adminService = {
     return api.uploadFile('/admin/products/create', data);
   },
 
+  async updateProduct(id: string, data: FormData): Promise<ApiResponse<any>> {
+    return api.uploadFile(`/admin/products/${id}`, data, 'PUT');
+  },
+
+  async getProductDetail(id: string): Promise<Product | null> {
+    try {
+      const response = await api.get<any>(`/products/${id}`);
+      if (response.data) {
+        const p = response.data.product || response.data;
+        const mediaBaseUrl = getMediaBaseUrl();
+        const resolveImage = (img: string) => img.startsWith('http') ? img : `${mediaBaseUrl}${img}`;
+        return {
+          id: String(p.id),
+          name: p.name,
+          slug: p.slug,
+          price: Number(p.price),
+          original_price: p.original_price ? Number(p.original_price) : undefined,
+          originalPrice: p.original_price ? Number(p.original_price) : undefined,
+          description: p.description || '',
+          category: p.category?.name || p.category || '',
+          category_id: p.category_id || p.category?.id,
+          images: (p.images || []).map((img: any) => typeof img === 'string' ? resolveImage(img) : resolveImage(img.image)),
+          colors: p.colors || [],
+          sizes: (p.sizes || []).map((s: any) => typeof s === 'string' ? { name: s, inStock: true } : { name: s.name, inStock: s.in_stock ?? s.inStock ?? true }),
+          inStock: p.in_stock ?? p.inStock ?? true,
+          featured: p.featured ?? false,
+          rating: p.rating,
+          review_count: p.review_count,
+          reviewCount: p.review_count,
+          _rawImages: (p.images || []).map((img: any) => typeof img === 'object' ? img : { image: img }),
+        } as Product & { _rawImages: any[] };
+      }
+    } catch (error) {
+      console.warn('API unavailable for product detail');
+    }
+    return null;
+  },
+
   async getAnalytics(): Promise<AnalyticsData | null> {
     try {
       const response = await api.get<AnalyticsData>('/admin/analytics');

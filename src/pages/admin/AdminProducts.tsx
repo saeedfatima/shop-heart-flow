@@ -11,7 +11,7 @@ import { Search, Plus, Edit, Trash2, Eye, Loader2 } from "lucide-react";
 import AdminProductForm from "@/components/admin/AdminProductForm";
 import { useToast } from "@/hooks/use-toast";
 import { formatNaira } from "@/lib/currency";
-import { adminService, AdminProduct, AdminProductStats } from "@/lib/apiServices";
+import { adminService, AdminProduct, AdminProductStats, Product } from "@/lib/apiServices";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -29,6 +29,8 @@ const AdminProducts = () => {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [stats, setStats] = useState<AdminProductStats>({ total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0 });
   const [loading, setLoading] = useState(true);
+  const [editingProduct, setEditingProduct] = useState<(Product & { _rawImages?: any[] }) | null>(null);
+  const [editLoading, setEditLoading] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,6 +72,28 @@ const AdminProducts = () => {
     }
   };
 
+  const handleEdit = async (productId: string) => {
+    setEditLoading(productId);
+    try {
+      const product = await adminService.getProductDetail(productId);
+      if (product) {
+        setEditingProduct(product as Product & { _rawImages?: any[] });
+        setIsDialogOpen(true);
+      } else {
+        toast({ title: "Error", description: "Could not load product details.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to load product.", variant: "destructive" });
+    } finally {
+      setEditLoading(null);
+    }
+  };
+
+  const openCreateDialog = () => {
+    setEditingProduct(null);
+    setIsDialogOpen(true);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -81,24 +105,27 @@ const AdminProducts = () => {
           <h1 className="text-2xl font-bold text-foreground">Products Management</h1>
           <p className="text-muted-foreground">Add, edit, and manage your products</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setEditingProduct(null); }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={openCreateDialog}>
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[650px]">
             <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>Fill in the product details below.</DialogDescription>
+              <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+              <DialogDescription>{editingProduct ? "Update the product details below." : "Fill in the product details below."}</DialogDescription>
             </DialogHeader>
             <AdminProductForm
+              key={editingProduct?.id || 'create'}
+              editProduct={editingProduct || undefined}
               onSuccess={() => {
                 setIsDialogOpen(false);
+                setEditingProduct(null);
                 fetchProducts();
               }}
-              onCancel={() => setIsDialogOpen(false)}
+              onCancel={() => { setIsDialogOpen(false); setEditingProduct(null); }}
             />
           </DialogContent>
         </Dialog>
@@ -210,7 +237,9 @@ const AdminProducts = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(product.id)} disabled={editLoading === product.id}>
+                        {editLoading === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit className="h-4 w-4" />}
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
