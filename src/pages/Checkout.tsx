@@ -138,7 +138,7 @@ const Checkout = () => {
         description: `Your order #${order.order_number} has been confirmed.`,
       });
 
-      navigate(`/order-confirmation/${order.order_number}`);
+      navigate(`/order-confirmation/${order.id}`);
     } catch (error) {
       toast({
         title: 'Error',
