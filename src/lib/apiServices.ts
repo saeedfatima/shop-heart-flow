@@ -223,8 +223,11 @@ export const normalizeProduct = (p: any): Product => {
       if (!url) return '/placeholder.svg';
       return url.startsWith('http') ? url : `${mediaBaseUrl}${url}`;
     }),
-    colors: p.colors || [],
-    sizes: p.sizes || [],
+    colors: (p.colors || []).map((c: any) => ({ name: c.name, value: c.value })),
+    sizes: (p.sizes || []).map((s: any) => ({
+      name: s.name,
+      inStock: s.inStock === true || s.inStock === 1 || s.inStock === '1' || s.in_stock === true || s.in_stock === 1 || s.in_stock === '1',
+    })),
     inStock: p.in_stock ?? p.inStock ?? true,
     featured: p.featured || false,
     rating: p.rating ? Number(p.rating) : undefined,
