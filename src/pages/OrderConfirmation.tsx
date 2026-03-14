@@ -107,6 +107,9 @@ const OrderConfirmation = () => {
               </div>
             </div>
 
+            {/* Order Status Timeline */}
+            <OrderStatusTimeline status={order.status} className="py-5 border-b border-border" />
+
             {/* Order Items */}
             <div className="py-4 space-y-3">
               {order.items && order.items.length > 0 ? (

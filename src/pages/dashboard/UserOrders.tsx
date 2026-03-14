@@ -170,6 +170,9 @@ const UserOrders = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Order Status Timeline */}
+                <OrderStatusTimeline status={order.status} className="mt-4 pt-4 border-t border-border" />
                 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4 pt-4 border-t">
                   {order.tracking_number && (
