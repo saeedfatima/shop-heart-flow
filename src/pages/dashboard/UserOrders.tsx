@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Search, Eye, Calendar, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
+import OrderStatusTimeline from "@/components/orders/OrderStatusTimeline";
 import { formatNaira } from "@/lib/currency";
 import { orderService, Order } from "@/lib/apiServices";
 
