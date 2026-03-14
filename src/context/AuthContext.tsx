@@ -100,20 +100,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (signupData: SignupData) => {
-    const { data, error } = await api.register({
-      email: signupData.email,
-      firstName: signupData.firstName,
-      lastName: signupData.lastName,
-      password: signupData.password,
-      passwordConfirm: signupData.passwordConfirm,
-    });
-    
-    if (data?.success) {
-      setUser(data.user);
-      return { success: true, message: data.message };
+    try {
+      const { data, error } = await api.register({
+        email: signupData.email,
+        firstName: signupData.firstName,
+        lastName: signupData.lastName,
+        password: signupData.password,
+        passwordConfirm: signupData.passwordConfirm,
+      });
+      
+      if (data?.success) {
+        setUser(data.user);
+        return { success: true, message: data.message };
+      }
+      
+      if (error === 'Network error' || error?.includes('Cannot connect')) {
+        return { success: false, message: 'Cannot connect to server. Please ensure the PHP backend is running.' };
+      }
+      
+      return { success: false, message: error || 'Signup failed' };
+    } catch {
+      return { success: false, message: 'Cannot connect to server. Please ensure the PHP backend is running.' };
     }
-    
-    return { success: false, message: error || 'Signup failed' };
   };
 
   const logout = () => {
