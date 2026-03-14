@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Package, ArrowRight, Loader2 } from 'lucide-react';
+import OrderStatusTimeline from '@/components/orders/OrderStatusTimeline';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { orderService, Order } from '@/lib/apiServices';
@@ -105,6 +106,9 @@ const OrderConfirmation = () => {
                 {order.status === 'pending' ? 'Confirmed' : order.status}
               </div>
             </div>
+
+            {/* Order Status Timeline */}
+            <OrderStatusTimeline status={order.status} className="py-5 border-b border-border" />
 
             {/* Order Items */}
             <div className="py-4 space-y-3">
