@@ -92,7 +92,19 @@ try {
         'email_verification_required' => true,
     ], 201);
     
+} catch (PDOException $e) {
+    error_log("Registration DB error: " . $e->getMessage());
+    // Surface useful info without exposing internals
+    if (strpos($e->getMessage(), 'Unknown column') !== false) {
+        errorResponse('Database schema mismatch. Please run the latest schema.sql migration.', 500);
+    } elseif (strpos($e->getMessage(), "doesn't exist") !== false) {
+        errorResponse('Database table missing. Please run schema.sql to create tables.', 500);
+    } elseif (strpos($e->getMessage(), 'Connection refused') !== false || strpos($e->getMessage(), 'Access denied') !== false) {
+        errorResponse('Database connection failed. Check config/database.php credentials.', 500);
+    } else {
+        errorResponse('Registration failed: database error', 500);
+    }
 } catch (Exception $e) {
     error_log("Registration error: " . $e->getMessage());
-    errorResponse('Registration failed', 500);
+    errorResponse('Registration failed: ' . $e->getMessage(), 500);
 }
