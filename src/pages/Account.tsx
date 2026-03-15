@@ -1,72 +1,96 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, MapPin, Phone, Plus, Pencil, Trash2, Check } from 'lucide-react';
+import { User, MapPin, Phone, Plus, Pencil, Trash2, Check, Loader2 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock saved addresses
-const mockAddresses = [
-  {
-    id: '1',
-    label: 'Home',
-    address: '123 Main Street, Apt 4B',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    label: 'Office',
-    address: '456 Business Ave, Floor 12',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10016',
-    isDefault: false,
-  },
-];
+import { useAuth } from '@/context/AuthContext';
+import { addressService, Address } from '@/lib/apiServices';
 
 const Account = () => {
-  const [firstName, setFirstName] = useState('John');
-  const [lastName, setLastName] = useState('Doe');
-  const [phone, setPhone] = useState('+1 (555) 123-4567');
-  const [addresses, setAddresses] = useState(mockAddresses);
+  const { user, updateProfile } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isAddressLoading, setIsAddressLoading] = useState(true);
   const { toast } = useToast();
+
+  // Populate from auth user
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.first_name || '');
+      setLastName(user.last_name || '');
+      setPhone(user.phone || '');
+    }
+  }, [user]);
+
+  // Load addresses from API
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      setIsAddressLoading(true);
+      try {
+        const data = await addressService.getAll();
+        setAddresses(data);
+      } catch (error) {
+        console.error('Failed to load addresses:', error);
+      } finally {
+        setIsAddressLoading(false);
+      }
+    };
+    fetchAddresses();
+  }, []);
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProfileLoading(true);
 
-    setTimeout(() => {
-      setIsProfileLoading(false);
+    const result = await updateProfile({
+      first_name: firstName,
+      last_name: lastName,
+      phone,
+    });
+
+    setIsProfileLoading(false);
+    toast({
+      title: result.success ? "Profile updated" : "Update failed",
+      description: result.message,
+      variant: result.success ? undefined : "destructive",
+    });
+  };
+
+  const handleSetDefault = async (id: number) => {
+    const result = await addressService.update(id, { is_default: true });
+    if (result.data) {
+      setAddresses(addresses.map(addr => ({
+        ...addr,
+        is_default: addr.id === id,
+      })));
       toast({
-        title: "Profile updated",
-        description: "Your profile information has been saved.",
+        title: "Default address updated",
+        description: "Your default shipping address has been changed.",
       });
-    }, 1000);
+    }
   };
 
-  const handleSetDefault = (id: string) => {
-    setAddresses(addresses.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id,
-    })));
-    toast({
-      title: "Default address updated",
-      description: "Your default shipping address has been changed.",
-    });
-  };
-
-  const handleDeleteAddress = (id: string) => {
-    setAddresses(addresses.filter(addr => addr.id !== id));
-    toast({
-      title: "Address removed",
-      description: "The address has been deleted from your account.",
-    });
+  const handleDeleteAddress = async (id: number) => {
+    const result = await addressService.delete(id);
+    if (!result.error) {
+      setAddresses(addresses.filter(addr => addr.id !== id));
+      toast({
+        title: "Address removed",
+        description: "The address has been deleted from your account.",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -142,7 +166,7 @@ const Account = () => {
                         id="phone"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+1 (555) 000-0000"
+                        placeholder="+234 000 000 0000"
                         className="pl-10"
                       />
                     </div>
@@ -152,7 +176,7 @@ const Account = () => {
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
-                      value="john.doe@example.com"
+                      value={user?.email || ''}
                       disabled
                       className="bg-muted"
                     />
@@ -193,67 +217,73 @@ const Account = () => {
                   </Button>
                 </div>
 
-                <div className="space-y-4">
-                  {addresses.map((address) => (
-                    <div
-                      key={address.id}
-                      className={`relative p-4 rounded-xl border transition-colors ${
-                        address.isDefault
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      {address.isDefault && (
-                        <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-                          <Check className="h-3 w-3" />
-                          Default
-                        </span>
-                      )}
-                      <div className="pr-16">
-                        <p className="font-medium">{address.label}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {address.address}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {address.city}, {address.state} {address.zipCode}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 mt-4">
-                        <Button variant="ghost" size="sm" className="h-8 gap-1.5">
-                          <Pencil className="h-3.5 w-3.5" />
-                          Edit
-                        </Button>
-                        {!address.isDefault && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8"
-                              onClick={() => handleSetDefault(address.id)}
-                            >
-                              Set as Default
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteAddress(address.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
+                {isAddressLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {addresses.map((address) => (
+                      <div
+                        key={address.id}
+                        className={`relative p-4 rounded-xl border transition-colors ${
+                          address.is_default
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {address.is_default && (
+                          <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
+                            <Check className="h-3 w-3" />
+                            Default
+                          </span>
                         )}
+                        <div className="pr-16">
+                          <p className="font-medium">{address.label}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {address.street_address}{address.apartment ? `, ${address.apartment}` : ''}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {address.city}, {address.state} {address.postal_code}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-4">
+                          <Button variant="ghost" size="sm" className="h-8 gap-1.5">
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </Button>
+                          {!address.is_default && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => handleSetDefault(address.id)}
+                              >
+                                Set as Default
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteAddress(address.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  {addresses.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No saved addresses yet</p>
-                    </div>
-                  )}
-                </div>
+                    {addresses.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No saved addresses yet</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

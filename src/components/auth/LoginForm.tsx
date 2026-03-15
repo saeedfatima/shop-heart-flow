@@ -40,11 +40,11 @@ export function LoginForm({ onForgotPassword, onSwitchToSignUp, redirectTo }: Lo
       if (redirectTo) {
         navigate(redirectTo);
       } else {
-        const storedUser = localStorage.getItem('mockAuthUser');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          navigate(user.role === 'admin' ? '/admin' : '/dashboard');
-        }
+        // Navigation will be handled after user state updates
+        // The AuthContext sets the user, so we can check role from the login response
+        const loginData = result as any;
+        const userRole = loginData.user?.role || 'user';
+        navigate(userRole === 'admin' ? '/admin' : '/dashboard');
       }
     } else {
       toast({
