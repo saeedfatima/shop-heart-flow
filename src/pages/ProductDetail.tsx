@@ -74,12 +74,21 @@ const ProductDetail = () => {
     );
   }
 
+  const requiresColor = product.colors && product.colors.length > 0;
+  const requiresSize = product.sizes && product.sizes.length > 0;
+
   const handleAddToCart = () => {
-    if (!selectedColor || !selectedSize) return;
-    addToCart(product as any, selectedColor, selectedSize, quantity);
+    if (requiresColor && !selectedColor) return;
+    if (requiresSize && !selectedSize) return;
+    
+    const colorToAdd = selectedColor || { name: 'Default', value: '#000000' } as ProductColor;
+    const sizeToAdd = selectedSize || { name: 'Standard', inStock: true } as ProductSize;
+    
+    addToCart(product as any, colorToAdd, sizeToAdd, quantity);
   };
 
-  const canAddToCart = selectedColor && selectedSize && selectedSize.inStock;
+  const isSizeStockValid = !requiresSize || (selectedSize && selectedSize.inStock);
+  const canAddToCart = (!requiresColor || selectedColor) && (!requiresSize || selectedSize) && isSizeStockValid && product.inStock;
 
   return (
     <Layout>
@@ -135,7 +144,11 @@ const ProductDetail = () => {
           <div className="space-y-6">
             {/* Title & Price */}
             <div>
-              <p className="text-sm text-muted-foreground">{product.category}</p>
+              <p className="text-sm text-muted-foreground">
+                {typeof product.category === 'object' && product.category !== null 
+                  ? (product.category as any).name 
+                  : product.category}
+              </p>
               <h1 className="mt-1 text-3xl font-semibold">{product.name}</h1>
               <div className="mt-3 flex items-center gap-3">
                 <span className="text-2xl font-semibold">{formatNaira(product.price)}</span>
@@ -248,9 +261,9 @@ const ProductDetail = () => {
               onClick={handleAddToCart}
               disabled={!canAddToCart}
             >
-              {!selectedSize
+              {requiresSize && !selectedSize
                 ? 'Select a size'
-                : !selectedSize.inStock
+                : requiresSize && selectedSize && !selectedSize.inStock
                 ? 'Out of stock'
                 : 'Add to Cart'}
             </Button>

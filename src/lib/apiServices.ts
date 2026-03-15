@@ -209,7 +209,7 @@ export const normalizeProduct = (p: any): Product => {
     colors: (p.colors || []).map((c: any) => ({ name: c.name, value: c.value })),
     sizes: (p.sizes || []).map((s: any) => ({
       name: s.name,
-      inStock: s.inStock === true || s.inStock === 1 || s.inStock === '1' || s.in_stock === true || s.in_stock === 1 || s.in_stock === '1',
+      inStock: s.inStock === true || s.inStock === 1 || s.inStock === '1' || s.in_stock === true || s.in_stock === 1 || s.in_stock === '1' || s.instock === true || s.instock === 1 || s.instock === '1',
     })),
     inStock: p.in_stock ?? p.inStock ?? true,
     featured: p.featured || false,
@@ -567,7 +567,7 @@ export const adminService = {
         category_id: p.category_id || p.category?.id,
         images: (p.images || []).map((img: any) => typeof img === 'string' ? resolveImage(img) : resolveImage(img.image)),
         colors: p.colors || [],
-        sizes: (p.sizes || []).map((s: any) => typeof s === 'string' ? { name: s, inStock: true } : { name: s.name, inStock: s.in_stock ?? s.inStock ?? true }),
+        sizes: (p.sizes || []).map((s: any) => typeof s === 'string' ? { name: s, inStock: true } : { name: s.name, inStock: s.in_stock ?? s.inStock ?? s.instock ?? true }),
         inStock: p.in_stock ?? p.inStock ?? true,
         featured: p.featured ?? false,
         rating: p.rating,

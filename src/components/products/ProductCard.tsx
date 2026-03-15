@@ -54,12 +54,15 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
           )}
         </div>
 
-        {/* Product Info */}
         <div className="mt-4 space-y-1">
           <h3 className="font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
             {product.name}
           </h3>
-          <p className="text-sm text-muted-foreground">{product.category}</p>
+          <p className="text-sm text-muted-foreground">
+            {typeof product.category === 'object' && product.category !== null 
+              ? (product.category as any).name 
+              : product.category}
+          </p>
           <div className="flex items-center gap-2">
             <span className="font-semibold">{formatNaira(product.price)}</span>
             {hasDiscount && (

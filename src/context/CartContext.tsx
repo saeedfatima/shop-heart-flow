@@ -49,13 +49,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addToCart = (product: Product, color: ProductColor, size: ProductSize, quantity: number) => {
+    console.log('Adding to cart:', { product, color, size, quantity });
+    
     setItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(
         item =>
-          item.product.id === product.id &&
+          String(item.product.id) === String(product.id) &&
           item.selectedColor.name === color.name &&
           item.selectedSize.name === size.name
       );
+
+      console.log('Existing item index:', existingItemIndex);
 
       if (existingItemIndex > -1) {
         // Update quantity if item already exists

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,9 +183,11 @@ const UserOrders = () => {
                     </div>
                   )}
                   <div className="flex gap-2 ml-auto">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/order-confirmation/${order.id}`}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Link>
                     </Button>
                     {order.status === "delivered" && (
                       <Button variant="outline" size="sm">

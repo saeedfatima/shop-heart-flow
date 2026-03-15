@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Camera, Mail, Phone, User, Lock, Shield, Upload, X, Loader2, MapPin, Ca
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { addressService, Address } from "@/lib/apiServices";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,99 @@ const UserProfile = () => {
     confirmPassword: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  // Address State
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [addressLoading, setAddressLoading] = useState(true);
+  const [addressForm, setAddressForm] = useState({
+    label: "",
+    recipient_name: "",
+    phone: "",
+    street_address: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "Nigeria",
+    is_default: false,
+  });
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const data = await addressService.getAll();
+        setAddresses(Array.isArray(data) ? data.slice(0, 2) : []); // limit to 2 maximum
+      } catch (error) {
+        console.error("Failed to load addresses:", error);
+      } finally {
+        setAddressLoading(false);
+      }
+    };
+    fetchAddresses();
+  }, []);
+
+  const openAddressEditor = (addr?: Address) => {
+    if (addr) {
+      setEditingAddress(addr);
+      setAddressForm({
+        label: addr.label || "Home",
+        recipient_name: addr.recipient_name,
+        phone: addr.phone,
+        street_address: addr.street_address,
+        city: addr.city,
+        state: addr.state,
+        postal_code: addr.postal_code,
+        country: addr.country || "Nigeria",
+        is_default: addr.is_default,
+      });
+    } else {
+      setEditingAddress(null);
+      setAddressForm({
+        label: addresses.length === 0 ? "Home" : "Work",
+        recipient_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim(),
+        phone: user?.phone || "",
+        street_address: "",
+        city: "",
+        state: "",
+        postal_code: "",
+        country: "Nigeria",
+        is_default: addresses.length === 0,
+      });
+    }
+    setShowAddressDialog(true);
+  };
+
+  const handleSaveAddress = async () => {
+    const payload = {
+      address_type: addressForm.label.toLowerCase() === 'work' ? 'work' : 'home',
+      ...addressForm
+    };
+
+    try {
+      if (editingAddress) {
+        await addressService.update(editingAddress.id, payload);
+        setAddresses(prev => prev.map(a => a.id === editingAddress.id ? { ...a, ...payload } : a));
+      } else {
+        const { data } = await addressService.create(payload);
+        if (data) setAddresses(prev => [...prev, data]);
+      }
+      toast({ title: "Address saved", description: "Your shipping addresses have been updated." });
+      setShowAddressDialog(false);
+    } catch {
+      toast({ title: "Error", description: "Could not save address", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteAddress = async (id: number) => {
+    try {
+      await addressService.delete(id);
+      setAddresses(prev => prev.filter(a => a.id !== id));
+      toast({ title: "Address removed" });
+    } catch {
+      toast({ title: "Error", description: "Could not drop address", variant: "destructive" });
+    }
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -399,6 +493,59 @@ const UserProfile = () => {
           </CardContent>
         </Card>
 
+        {/* Shipping Addresses */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Shipping Addresses
+              </CardTitle>
+              <CardDescription>Manage up to 2 shipping addresses</CardDescription>
+            </div>
+            {addresses.length < 2 && (
+              <Button variant="outline" size="sm" onClick={() => openAddressEditor()}>
+                Add Address
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {addressLoading ? (
+               <div className="flex items-center justify-center p-4">
+                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+               </div>
+            ) : addresses.length === 0 ? (
+              <div className="text-center p-6 bg-secondary/50 rounded-lg text-muted-foreground border-2 border-dashed">
+                <MapPin className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                <p>No addresses added yet.</p>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {addresses.map(addr => (
+                  <div key={addr.id} className="relative p-4 border rounded-lg bg-card">
+                    {addr.is_default && (
+                      <span className="absolute top-4 right-4 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-medium uppercase">
+                        Default
+                      </span>
+                    )}
+                    <h4 className="font-semibold">{addr.label}</h4>
+                    <p className="text-sm font-medium mt-1">{addr.recipient_name}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {addr.street_address}<br/>
+                      {addr.city}, {addr.state} {addr.postal_code}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">{addr.phone}</p>
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="secondary" size="sm" className="flex-1" onClick={() => openAddressEditor(addr)}>Edit</Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteAddress(addr.id)}><X className="h-4 w-4"/></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Social Media Links */}
         <Card>
           <CardHeader>
@@ -555,6 +702,58 @@ const UserProfile = () => {
               Update Password
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Address Form Dialog */}
+      <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
+        <DialogContent className="max-w-md">
+           <DialogHeader>
+             <DialogTitle>{editingAddress ? 'Edit Address' : 'Add Address'}</DialogTitle>
+             <DialogDescription>Enter the shipping destination details below</DialogDescription>
+           </DialogHeader>
+           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Address Label (Home, Work, etc)</Label>
+                   <Input value={addressForm.label} onChange={e => setAddressForm({...addressForm, label: e.target.value})} placeholder="e.g. Home" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>Phone</Label>
+                   <Input value={addressForm.phone} onChange={e => setAddressForm({...addressForm, phone: e.target.value})} />
+                 </div>
+              </div>
+              <div className="space-y-2">
+                 <Label>Recipient Name</Label>
+                 <Input value={addressForm.recipient_name} onChange={e => setAddressForm({...addressForm, recipient_name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                 <Label>Street Address</Label>
+                 <Input value={addressForm.street_address} onChange={e => setAddressForm({...addressForm, street_address: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>City</Label>
+                   <Input value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>State</Label>
+                   <Input value={addressForm.state} onChange={e => setAddressForm({...addressForm, state: e.target.value})} />
+                 </div>
+              </div>
+              <div className="space-y-2">
+                 <Label>Postal Code</Label>
+                 <Input value={addressForm.postal_code} onChange={e => setAddressForm({...addressForm, postal_code: e.target.value})} />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                 <input type="checkbox" checked={addressForm.is_default} onChange={e => setAddressForm({...addressForm, is_default: e.target.checked})} className="rounded border-gray-300"/>
+                 Set as default shipping address
+              </label>
+           </div>
+           <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddressDialog(false)}>Cancel</Button>
+              <Button onClick={handleSaveAddress}>Save Address</Button>
+           </DialogFooter>
         </DialogContent>
       </Dialog>
     </motion.div>

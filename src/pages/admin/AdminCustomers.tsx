@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Eye, Mail, Users, UserPlus, ShoppingBag, DollarSign, Loader2 } from "lucide-react";
 import { formatNaira } from "@/lib/currency";
 import { adminService, AdminCustomer, AdminCustomerStats } from "@/lib/apiServices";
@@ -47,6 +48,60 @@ const AdminCustomers = () => {
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const CustomerDetailsDialog = ({ customer }: { customer: AdminCustomer }) => (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Customer Details</DialogTitle>
+        <DialogDescription>
+          Detailed metrics and information for {customer.name}
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="grid gap-6 py-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={customer.avatar || undefined} />
+            <AvatarFallback className="bg-primary/10 text-primary text-xl">
+              {customer.name.split(' ').map(n => n[0]).join('')}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="text-xl font-semibold">{customer.name}</h3>
+            <p className="text-muted-foreground">{customer.email}</p>
+            <Badge className={`${getStatusColor(customer.status)} mt-2`}>
+              {customer.status}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Orders</h4>
+            <p className="text-2xl font-semibold">{customer.orders}</p>
+          </div>
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Spent</h4>
+            <p className="text-2xl font-semibold">{formatNaira(customer.spent)}</p>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-medium mb-2 border-b pb-2">Account Information</h4>
+          <div className="space-y-2 text-sm">
+             <div className="flex justify-between">
+                <span className="text-muted-foreground">Customer ID</span>
+                <span className="font-medium">{customer.id}</span>
+             </div>
+             <div className="flex justify-between">
+                <span className="text-muted-foreground">Joined Date</span>
+                <span className="font-medium">{customer.joined ? new Date(customer.joined).toLocaleDateString() : 'N/A'}</span>
+             </div>
+          </div>
+        </div>
+      </div>
+    </DialogContent>
   );
 
   return (
@@ -176,7 +231,14 @@ const AdminCustomers = () => {
                       {customer.joined ? new Date(customer.joined).toLocaleDateString() : '-'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <CustomerDetailsDialog customer={customer} />
+                      </Dialog>
                       <Button variant="ghost" size="icon"><Mail className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>

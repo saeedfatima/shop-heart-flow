@@ -8,11 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { useAuth } from "@/context/AuthContext";
 import { formatNaira } from "@/lib/currency";
-import { orderService, addressService, wishlistService, Order, Address, WishlistItem } from "@/lib/apiServices";
+import { orderService, Order } from "@/lib/apiServices";
 import { 
   Package, 
   MapPin, 
-  Heart, 
   Settings, 
   ShoppingBag,
   ChevronRight,
@@ -21,13 +20,11 @@ import {
   Loader2
 } from "lucide-react";
 
-// Import sub-pages
 import UserOrders from "@/pages/dashboard/UserOrders";
-import UserWishlist from "@/pages/dashboard/UserWishlist";
-import UserAddresses from "@/pages/dashboard/UserAddresses";
 import UserProfile from "@/pages/dashboard/UserProfile";
-import UserPayments from "@/pages/dashboard/UserPayments";
 import UserSettings from "@/pages/dashboard/UserSettings";
+import UserNotifications from "@/pages/dashboard/UserNotifications";
+import UserHelp from "@/pages/dashboard/UserHelp";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
 
@@ -43,22 +40,14 @@ const getStatusColor = (status: string) => {
 const DashboardOverview = () => {
   const { user } = useAuth();
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [ordersData, addressesData, wishlistData] = await Promise.all([
-          orderService.getAll(),
-          addressService.getAll(),
-          wishlistService.getAll(),
-        ]);
+        const ordersData = await orderService.getAll();
         setRecentOrders(ordersData.slice(0, 3));
-        setAddresses(addressesData.slice(0, 2));
-        setWishlistCount(wishlistData.length);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -117,22 +106,6 @@ const DashboardOverview = () => {
               <div>
                 <p className="font-medium">Account</p>
                 <p className="text-sm text-muted-foreground">Profile settings</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link to="/dashboard/wishlist">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="p-3 bg-primary/10 rounded-full">
-                <Heart className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Wishlist</p>
-                <p className="text-sm text-muted-foreground">
-                  {loading ? '...' : `${wishlistCount} items`}
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -214,40 +187,6 @@ const DashboardOverview = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Saved Addresses */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Saved Addresses</CardTitle>
-              <Link to="/dashboard/addresses">
-                <Button variant="ghost" size="sm">Manage</Button>
-              </Link>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {loading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : addresses.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No addresses saved yet.</p>
-              ) : (
-                addresses.map((address) => (
-                  <div key={address.id} className="p-3 bg-secondary/50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">{address.label}</span>
-                      {address.is_default && (
-                        <Badge variant="outline" className="text-xs">Default</Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground pl-6">
-                      {address.street_address}, {address.city}, {address.state} {address.postal_code}
-                    </p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
           {/* Account Summary */}
           <Card>
             <CardHeader>
@@ -304,11 +243,10 @@ const UserDashboard = () => {
           <Routes>
             <Route index element={<DashboardOverview />} />
             <Route path="orders" element={<UserOrders />} />
-            <Route path="wishlist" element={<UserWishlist />} />
-            <Route path="addresses" element={<UserAddresses />} />
             <Route path="profile" element={<UserProfile />} />
-            <Route path="payments" element={<UserPayments />} />
             <Route path="settings" element={<UserSettings />} />
+            <Route path="notifications" element={<UserNotifications />} />
+            <Route path="help" element={<UserHelp />} />
             <Route path="*" element={<DashboardOverview />} />
           </Routes>
         </div>

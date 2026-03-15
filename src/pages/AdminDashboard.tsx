@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +34,9 @@ import AdminCustomers from "@/pages/admin/AdminCustomers";
 import AdminCategories from "@/pages/admin/AdminCategories";
 import AdminAnalytics from "@/pages/admin/AdminAnalytics";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminAudit from "@/pages/admin/AdminAudit";
+import AdminAnnouncements from "@/pages/admin/AdminAnnouncements";
+import AdminTickets from "@/pages/admin/AdminTickets";
 
 interface AdminStats {
   total_revenue: number;
@@ -137,6 +141,72 @@ const DashboardOverview = () => {
     customers_change: 0,
   };
 
+  const OrderDetailsDialog = ({ order }: { order: Order }) => (
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Order Details - {order.order_number}</DialogTitle>
+        <DialogDescription>
+          Placed on {new Date(order.created_at).toLocaleDateString()}
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="grid gap-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-medium mb-1">Status</h4>
+            <Badge className={`${getStatusColor(order.status)} flex items-center gap-1 w-fit`}>
+              {order.status}
+            </Badge>
+          </div>
+          <div className="text-right">
+            <h4 className="font-medium mb-1">Total Amount</h4>
+            <p className="font-bold text-lg">{formatNaira(order.total)}</p>
+          </div>
+        </div>
+
+        {order.shipping_address && (
+           <div>
+            <h4 className="font-medium mb-2 border-b pb-2">Shipping Information</h4>
+            <p className="text-sm font-medium">{order.shipping_address.recipient_name}</p>
+            <p className="text-sm text-muted-foreground">
+              {order.shipping_address.street_address}<br />
+              {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.postal_code}<br />
+              {order.shipping_address.phone}
+            </p>
+          </div>
+        )}
+
+        <div>
+          <h4 className="font-medium mb-2 border-b pb-2">Order Items</h4>
+          <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2">
+            {order.items?.map((item) => (
+              <div key={item.id} className="flex justify-between items-center text-sm">
+                <div className="flex gap-3 items-center">
+                   {item.product.image && (
+                     <img 
+                       src={item.product.image.startsWith('http') ? item.product.image : `http://localhost/api${item.product.image}`} 
+                       alt={item.product.name}
+                       className="w-10 h-10 object-cover rounded" 
+                     />
+                   )}
+                   <div>
+                     <p className="font-medium">{item.product.name}</p>
+                     <p className="text-xs text-muted-foreground">
+                       {item.quantity} x {formatNaira(item.price)}
+                       {item.color ? ` • ${item.color}` : ''}
+                       {item.size ? ` • ${item.size}` : ''}
+                     </p>
+                   </div>
+                </div>
+                <p className="font-medium">{formatNaira(item.quantity * item.price)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </DialogContent>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -234,7 +304,14 @@ const DashboardOverview = () => {
                             {new Date(order.created_at).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <OrderDetailsDialog order={order} />
+                            </Dialog>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -277,7 +354,10 @@ const AdminDashboard = () => {
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="audit" element={<AdminAudit />} />
+            <Route path="announcements" element={<AdminAnnouncements />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="tickets" element={<AdminTickets />} />
             <Route path="*" element={<DashboardOverview />} />
           </Routes>
         </div>

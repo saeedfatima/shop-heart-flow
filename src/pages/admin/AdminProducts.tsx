@@ -94,6 +94,78 @@ const AdminProducts = () => {
     setIsDialogOpen(true);
   };
 
+  const ProductDetailsDialog = ({ product }: { product: AdminProduct }) => {
+    const CategoryDisplay = () => {
+      if (typeof product.category === 'object' && product.category !== null) {
+        return (product.category as any).name;
+      }
+      return product.category;
+    };
+
+    return (
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Product Details - {product.name}</DialogTitle>
+          <DialogDescription>
+            ID: {product.id}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="grid md:grid-cols-2 gap-6 py-4">
+          <div className="aspect-[4/5] overflow-hidden rounded-lg bg-secondary flex items-center justify-center">
+            <img 
+              src={product.image?.startsWith('http') ? product.image : `http://localhost/api${product.image}`} 
+              alt={product.name}
+              className="h-full w-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
+            />
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">Category</h4>
+              <p><CategoryDisplay /></p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Status</h4>
+                <Badge className={getStatusColor(product.status)}>
+                  {product.status.replace('_', ' ')}
+                </Badge>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Stock Level</h4>
+                <p className="font-semibold text-lg">{product.stock}</p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">Price</h4>
+              <p className="font-bold text-2xl text-primary">{formatNaira(product.price)}</p>
+            </div>
+            
+            {product.description && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
+                <p className="text-sm truncate max-h-32 overflow-y-auto pr-2 bg-muted/30 p-2 rounded">
+                  {product.description}
+                </p>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+              <Button onClick={() => handleEdit(product.id)} className="w-full" variant="outline">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Product
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -227,7 +299,11 @@ const AdminProducts = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{product.category}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {typeof product.category === 'object' && product.category !== null 
+                        ? (product.category as any).name 
+                        : product.category}
+                    </TableCell>
                     <TableCell>{formatNaira(product.price)}</TableCell>
                     <TableCell className="hidden sm:table-cell">{product.stock}</TableCell>
                     <TableCell>
@@ -236,7 +312,14 @@ const AdminProducts = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <ProductDetailsDialog product={product} />
+                      </Dialog>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(product.id)} disabled={editLoading === product.id}>
                         {editLoading === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit className="h-4 w-4" />}
                       </Button>

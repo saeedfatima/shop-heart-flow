@@ -129,7 +129,7 @@ const AdminCategories = () => {
   const totalProducts = categories.reduce((sum, c) => sum + ((c as any).product_count || 0), 0);
   const avgProducts = categories.length > 0 ? Math.round(totalProducts / categories.length) : 0;
 
-  const CategoryForm = ({ onSubmit, submitLabel }: { onSubmit: () => void; submitLabel: string }) => (
+  const renderCategoryForm = (onSubmit: () => void, submitLabel: string) => (
     <div className="grid gap-4 py-4">
       <div className="space-y-2">
         <Label htmlFor="cat-name">Category Name</Label>
@@ -192,7 +192,7 @@ const AdminCategories = () => {
               <DialogTitle>Add New Category</DialogTitle>
               <DialogDescription>Create a new product category.</DialogDescription>
             </DialogHeader>
-            <CategoryForm onSubmit={handleCreate} submitLabel="Create" />
+            {renderCategoryForm(handleCreate, "Create")}
           </DialogContent>
         </Dialog>
       </div>
@@ -293,7 +293,7 @@ const AdminCategories = () => {
             <DialogTitle>Edit Category</DialogTitle>
             <DialogDescription>Update category details.</DialogDescription>
           </DialogHeader>
-          <CategoryForm onSubmit={handleUpdate} submitLabel="Save" />
+          {renderCategoryForm(handleUpdate, "Save")}
         </DialogContent>
       </Dialog>
 

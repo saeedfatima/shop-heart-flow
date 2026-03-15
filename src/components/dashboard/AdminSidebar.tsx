@@ -12,9 +12,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Tag,
-  MessageSquare,
-  Bell,
+  Activity,
+  Megaphone,
   Store,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -33,12 +34,13 @@ const menuItems = [
   { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
   { icon: Users, label: 'Customers', path: '/admin/customers' },
   { icon: Tag, label: 'Categories', path: '/admin/categories' },
+  { icon: MessageSquare, label: 'Tickets', path: '/admin/tickets'},
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
-  { icon: MessageSquare, label: 'Messages', path: '/admin/messages' },
+  { icon: Activity, label: 'Audit', path: '/admin/audit' },
 ];
 
 const bottomMenuItems = [
-  { icon: Bell, label: 'Notifications', path: '/admin/notifications' },
+  { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
   { icon: Settings, label: 'Settings', path: '/admin/settings' },
 ];
 

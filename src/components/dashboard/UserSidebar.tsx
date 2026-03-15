@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   ShoppingBag,
-  Heart,
   MapPin,
   CreditCard,
   User,
@@ -30,9 +29,6 @@ import {
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: ShoppingBag, label: 'My Orders', path: '/dashboard/orders' },
-  { icon: Heart, label: 'Wishlist', path: '/dashboard/wishlist' },
-  { icon: MapPin, label: 'Addresses', path: '/dashboard/addresses' },
-  { icon: CreditCard, label: 'Payment Methods', path: '/dashboard/payments' },
   { icon: User, label: 'Profile', path: '/dashboard/profile' },
 ];
 

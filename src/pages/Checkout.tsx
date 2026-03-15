@@ -12,6 +12,10 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { formatNaira } from '@/lib/currency';
 import { orderService, addressService, Address } from '@/lib/apiServices';
+import { usePaystackPayment } from 'react-paystack';
+
+// Testing Mode Public Key for Paystack
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_KEY || 'pk_test_d3b5b1a8d05ddddba9e93345d38a8e3230b06b7a'; // Default testing key if not provided
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -34,48 +38,7 @@ const Checkout = () => {
     country: 'Nigeria',
   });
 
-  const [cardData, setCardData] = useState({
-    number: '',
-    expiry: '',
-    cvc: '',
-    name: '',
-  });
-
-  // Fetch user addresses if authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      addressService.getAll().then(data => {
-        setAddresses(data);
-        const defaultAddr = data.find(a => a.is_default);
-        if (defaultAddr) {
-          setSelectedAddressId(defaultAddr.id);
-        } else if (data.length > 0) {
-          setSelectedAddressId(data[0].id);
-        } else {
-          setShowNewAddressForm(true);
-        }
-      }).catch(() => {
-        setShowNewAddressForm(true);
-      });
-    } else {
-      setShowNewAddressForm(true);
-    }
-  }, [isAuthenticated]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCardData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
-
+  const onSuccess = async (reference: any) => {
     try {
       let addressId = selectedAddressId;
 
@@ -95,15 +58,10 @@ const Checkout = () => {
         });
 
         if (error || !newAddress) {
-          toast({
-            title: 'Error',
-            description: error || 'Failed to save address',
-            variant: 'destructive',
-          });
+          toast({ title: 'Error', description: error || 'Failed to save address', variant: 'destructive' });
           setIsProcessing(false);
           return;
         }
-
         addressId = newAddress.id;
       }
 
@@ -121,11 +79,7 @@ const Checkout = () => {
       });
 
       if (error || !order) {
-        toast({
-          title: 'Order failed',
-          description: error || 'Failed to create order. Please try again.',
-          variant: 'destructive',
-        });
+        toast({ title: 'Order failed', description: error || 'Failed to create order. Please try again.', variant: 'destructive' });
         setIsProcessing(false);
         return;
       }
@@ -133,20 +87,60 @@ const Checkout = () => {
       clearCart();
       setIsProcessing(false);
 
-      toast({
-        title: 'Order placed successfully!',
-        description: `Your order #${order.order_number} has been confirmed.`,
-      });
-
+      toast({  title: 'Order placed successfully!', description: `Payment Ref: ${reference.reference} - Your order #${order.order_number} has been confirmed.` });
       navigate(`/order-confirmation/${order.id}`);
+
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-      setIsProcessing(false);
+       toast({ title: 'Error', description: 'Something went wrong processing your order.', variant: 'destructive' });
+       setIsProcessing(false);
     }
+  };
+
+  const onClose = () => {
+    setIsProcessing(false);
+    toast({ title: 'Payment Cancelled', description: 'You cancelled the payment process.', variant: 'destructive' });
+  };
+
+  const config = {
+      reference: (new Date()).getTime().toString(),
+      email: formData.email,
+      amount: getTotal() * 100, // Paystack amount is in kobo (multiply by 100)
+      publicKey: PAYSTACK_PUBLIC_KEY,
+  };
+
+  const initializePayment = usePaystackPayment(config);
+
+  // Fetch user addresses if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      addressService.getAll().then(data => {
+        const addressData = Array.isArray(data) ? data : [];
+        setAddresses(addressData);
+        const defaultAddr = addressData.find(a => a.is_default);
+        if (defaultAddr) {
+          setSelectedAddressId(defaultAddr.id);
+        } else if (addressData.length > 0) {
+          setSelectedAddressId(addressData[0].id);
+        } else {
+          setShowNewAddressForm(true);
+        }
+      }).catch(() => {
+        setShowNewAddressForm(true);
+      });
+    } else {
+      setShowNewAddressForm(true);
+    }
+  }, [isAuthenticated]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    initializePayment({ onSuccess, onClose });
   };
 
   if (items.length === 0) {
@@ -365,68 +359,21 @@ const Checkout = () => {
                 </>
               )}
 
-              {/* Payment */}
+              {/* Payment Info */}
               <section className="space-y-4">
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-semibold">Payment</h2>
                   <Lock className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="p-4 rounded-lg border border-border bg-card">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CreditCard className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Card Payment</span>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cardNumber">Card Number</Label>
-                      <Input
-                        id="cardNumber"
-                        name="number"
-                        placeholder="1234 5678 9012 3456"
-                        value={cardData.number}
-                        onChange={handleCardChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cardName">Name on Card</Label>
-                      <Input
-                        id="cardName"
-                        name="name"
-                        value={cardData.name}
-                        onChange={handleCardChange}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cardExpiry">Expiry Date</Label>
-                        <Input
-                          id="cardExpiry"
-                          name="expiry"
-                          placeholder="MM/YY"
-                          value={cardData.expiry}
-                          onChange={handleCardChange}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cardCvc">CVC</Label>
-                        <Input
-                          id="cardCvc"
-                          name="cvc"
-                          placeholder="123"
-                          value={cardData.cvc}
-                          onChange={handleCardChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
+                   <div className="flex items-center gap-3">
+                     <CreditCard className="h-8 w-8 text-primary" />
+                     <div>
+                       <h3 className="font-semibold text-lg">Pay with Paystack</h3>
+                       <p className="text-sm text-muted-foreground">You will be redirected to Paystack to complete your payment securely via Card, USSD, or Bank Transfer.</p>
+                     </div>
+                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  This is a demo. No actual payment will be processed.
-                </p>
               </section>
             </div>
 
