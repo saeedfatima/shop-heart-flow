@@ -102,10 +102,11 @@ const Checkout = () => {
   };
 
   const config = {
-      reference: (new Date()).getTime().toString(),
-      email: formData.email,
-      amount: getTotal() * 100, // Paystack amount is in kobo (multiply by 100)
-      publicKey: PAYSTACK_PUBLIC_KEY,
+    reference: (new Date()).getTime().toString(),
+    email: formData.email || user?.email || '',
+    amount: Math.round(getTotal() * 100), // Ensure it's an integer in kobo
+    publicKey: PAYSTACK_PUBLIC_KEY,
+    currency: 'NGN',
   };
 
   const initializePayment = usePaystackPayment(config);
