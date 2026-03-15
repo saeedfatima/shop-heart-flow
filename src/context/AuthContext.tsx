@@ -24,7 +24,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
   signup: (data: SignupData) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => Promise<{ success: boolean; message: string }>;
