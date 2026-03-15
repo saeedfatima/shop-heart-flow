@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (data?.success) {
         setUser(data.user);
-        return { success: true, message: data.message };
+        return { success: true, message: data.message, user: data.user };
       }
       
       // Check if it's a network error

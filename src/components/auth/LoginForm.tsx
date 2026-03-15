@@ -40,10 +40,7 @@ export function LoginForm({ onForgotPassword, onSwitchToSignUp, redirectTo }: Lo
       if (redirectTo) {
         navigate(redirectTo);
       } else {
-        // Navigation will be handled after user state updates
-        // The AuthContext sets the user, so we can check role from the login response
-        const loginData = result as any;
-        const userRole = loginData.user?.role || 'user';
+        const userRole = result.user?.role || 'user';
         navigate(userRole === 'admin' ? '/admin' : '/dashboard');
       }
     } else {
