@@ -1,28 +1,11 @@
 // API Services - Typed functions for PHP backend
-// Falls back to mock data when API is unavailable (e.g., in Lovable preview)
+// All data comes from the PHP API - no mock fallbacks
 import { api, ApiResponse, ApiUser, isApiConfigured } from './api';
-import { products as mockProducts, categories as mockCategories, getFeaturedProducts, getProductById } from '@/data/products';
 
 // Get base URL for media files (without /api suffix)
 const getMediaBaseUrl = (): string => {
   const apiUrl = import.meta.env.VITE_API_URL || '';
   return apiUrl.replace(/\/api\/?$/, '');
-};
-
-// Track if we've already warned about using mock data
-let mockDataWarningShown = false;
-
-const logMockFallback = (service: string) => {
-  if (!mockDataWarningShown && !isApiConfigured()) {
-    console.info(
-      `%c[Mock Data] Using mock data for ${service}. To use real data, start PHP server and set VITE_API_URL.`,
-      'color: #f59e0b; font-weight: bold'
-    );
-    console.info('%c[Mock Data] Example: VITE_API_URL=http://localhost/api', 'color: #f59e0b');
-    mockDataWarningShown = true;
-  } else {
-    console.log(`[Mock Data] Fallback to mock: ${service}`);
-  }
 };
 
 // ============================================
@@ -254,34 +237,22 @@ export const normalizeCategory = (c: any): Category => {
 
 export const categoryService = {
   async getAll(): Promise<Category[]> {
-    try {
-      const response = await api.get<any>('/categories');
-      // PHP returns array directly
-      if (response.data && Array.isArray(response.data)) {
-        console.log('[PHP API] Loaded', response.data.length, 'categories from backend');
-        return response.data.map(normalizeCategory);
-      }
-    } catch (error) {
-      // Error already logged in api.ts
+    const response = await api.get<any>('/categories');
+    if (response.data && Array.isArray(response.data)) {
+      return response.data.map(normalizeCategory);
     }
-    // Fallback to mock data
-    logMockFallback('categories');
-    return mockCategories.map((c, index) => normalizeCategory({ ...c, id: index + 1 }));
+    if (response.error) {
+      console.warn('[API] Failed to load categories:', response.error);
+    }
+    return [];
   },
 
   async getBySlug(slug: string): Promise<Category | null> {
-    try {
-      const response = await api.get<any>(`/categories/${slug}`);
-      if (response.data) {
-        return normalizeCategory(response.data);
-      }
-    } catch (error) {
-      // Error already logged in api.ts
+    const response = await api.get<any>(`/categories/${slug}`);
+    if (response.data) {
+      return normalizeCategory(response.data);
     }
-    // Fallback to mock data
-    logMockFallback('category by slug');
-    const mockCat = mockCategories.find(c => c.slug === slug);
-    return mockCat ? normalizeCategory({ ...mockCat, id: mockCategories.indexOf(mockCat) + 1 }) : null;
+    return null;
   },
 };
 
@@ -298,94 +269,55 @@ export interface ProductFilters {
 
 export const productService = {
   async getAll(filters?: ProductFilters): Promise<PaginatedResponse<Product>> {
-    try {
-      const params = new URLSearchParams();
-      if (filters?.page) params.set('page', String(filters.page));
-      if (filters?.category) params.set('category', filters.category);
-      if (filters?.search) params.set('search', filters.search);
-      if (filters?.ordering) params.set('ordering', filters.ordering);
+    const params = new URLSearchParams();
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.search) params.set('search', filters.search);
+    if (filters?.ordering) params.set('ordering', filters.ordering);
 
-      const queryString = params.toString();
-      const endpoint = `/products${queryString ? `?${queryString}` : ''}`;
-      const response = await api.get<PaginatedResponse<any>>(endpoint);
+    const queryString = params.toString();
+    const endpoint = `/products${queryString ? `?${queryString}` : ''}`;
+    const response = await api.get<PaginatedResponse<any>>(endpoint);
 
-      if (response.data && response.data.results) {
-        console.log('[PHP API] Loaded', response.data.results.length, 'products from backend');
-        return {
-          ...response.data,
-          results: response.data.results.map(normalizeProduct),
-        };
-      }
-    } catch (error) {
-      // Error already logged in api.ts
+    if (response.data && response.data.results) {
+      return {
+        ...response.data,
+        results: response.data.results.map(normalizeProduct),
+      };
     }
-    
-    // Fallback to mock data
-    logMockFallback('products');
-    let filteredProducts = [...mockProducts];
-    
-    if (filters?.category && filters.category !== 'all') {
-      filteredProducts = filteredProducts.filter(
-        p => p.category.toLowerCase() === filters.category!.toLowerCase()
-      );
+
+    if (response.error) {
+      console.warn('[API] Failed to load products:', response.error);
     }
-    
-    if (filters?.search) {
-      const search = filters.search.toLowerCase();
-      filteredProducts = filteredProducts.filter(
-        p => p.name.toLowerCase().includes(search) || p.description.toLowerCase().includes(search)
-      );
-    }
-    
-    return {
-      count: filteredProducts.length,
-      next: null,
-      previous: null,
-      results: filteredProducts.map(normalizeProduct),
-    };
+
+    return { count: 0, next: null, previous: null, results: [] };
   },
 
   async getFeatured(): Promise<Product[]> {
-    try {
-      const response = await api.get<any>('/products/featured');
-      // PHP returns array directly
-      if (response.data && Array.isArray(response.data)) {
-        console.log('[PHP API] Loaded', response.data.length, 'featured products from backend');
-        return response.data.map(normalizeProduct);
-      }
-    } catch (error) {
-      // Error already logged in api.ts
+    const response = await api.get<any>('/products/featured');
+    if (response.data && Array.isArray(response.data)) {
+      return response.data.map(normalizeProduct);
     }
-    // Fallback to mock data
-    logMockFallback('featured products');
-    return getFeaturedProducts().map(normalizeProduct);
+    if (response.error) {
+      console.warn('[API] Failed to load featured products:', response.error);
+    }
+    return [];
   },
 
   async getById(id: string | number): Promise<Product | null> {
-    try {
-      const response = await api.get<any>(`/products/${id}`);
-      // PHP returns product object directly
-      if (response.data && response.data.id) {
-        console.log('[PHP API] Loaded product', id, 'from backend');
-        return normalizeProduct(response.data);
-      }
-    } catch (error) {
-      // Error already logged in api.ts
+    const response = await api.get<any>(`/products/${id}`);
+    if (response.data && response.data.id) {
+      return normalizeProduct(response.data);
     }
-    // Fallback to mock data
-    logMockFallback('product by id');
-    const mockProduct = getProductById(String(id));
-    return mockProduct ? normalizeProduct(mockProduct) : null;
+    if (response.error) {
+      console.warn('[API] Failed to load product:', response.error);
+    }
+    return null;
   },
 
   async getReviews(productId: string | number): Promise<Review[]> {
-    try {
-      const response = await api.get<Review[]>(`/products/${productId}/reviews`);
-      return response.data || [];
-    } catch (error) {
-      // Error already logged in api.ts
-      return [];
-    }
+    const response = await api.get<Review[]>(`/products/${productId}/reviews`);
+    return response.data || [];
   },
 
   async createReview(productId: string | number, data: { rating: number; title: string; comment: string }): Promise<ApiResponse<Review>> {
@@ -409,23 +341,13 @@ export const reviewService = {
 
 export const orderService = {
   async getAll(): Promise<Order[]> {
-    try {
-      const response = await api.get<Order[]>('/orders');
-      return response.data || [];
-    } catch (error) {
-      console.warn('API unavailable for orders');
-      return [];
-    }
+    const response = await api.get<Order[]>('/orders');
+    return response.data || [];
   },
 
   async getById(id: number): Promise<Order | null> {
-    try {
-      const response = await api.get<Order>(`/orders/${id}`);
-      return response.data || null;
-    } catch (error) {
-      console.warn('API unavailable for order detail');
-      return null;
-    }
+    const response = await api.get<Order>(`/orders/${id}`);
+    return response.data || null;
   },
 
   async create(data: OrderInput): Promise<ApiResponse<Order>> {
@@ -439,13 +361,8 @@ export const orderService = {
 
 export const addressService = {
   async getAll(): Promise<Address[]> {
-    try {
-      const response = await api.get<Address[]>('/addresses');
-      return response.data || [];
-    } catch (error) {
-      console.warn('API unavailable for addresses');
-      return [];
-    }
+    const response = await api.get<Address[]>('/addresses');
+    return response.data || [];
   },
 
   async create(data: AddressInput): Promise<ApiResponse<Address>> {
@@ -467,13 +384,8 @@ export const addressService = {
 
 export const wishlistService = {
   async getAll(): Promise<WishlistItem[]> {
-    try {
-      const response = await api.get<WishlistItem[]>('/wishlist');
-      return response.data || [];
-    } catch (error) {
-      console.warn('API unavailable for wishlist');
-      return [];
-    }
+    const response = await api.get<WishlistItem[]>('/wishlist');
+    return response.data || [];
   },
 
   async add(productId: number): Promise<ApiResponse<WishlistItem>> {
@@ -491,13 +403,8 @@ export const wishlistService = {
 
 export const paymentMethodService = {
   async getAll(): Promise<PaymentMethod[]> {
-    try {
-      const response = await api.get<PaymentMethod[]>('/payment-methods');
-      return response.data || [];
-    } catch (error) {
-      console.warn('API unavailable for payment methods');
-      return [];
-    }
+    const response = await api.get<PaymentMethod[]>('/payment-methods');
+    return response.data || [];
   },
 
   async create(data: PaymentMethodInput): Promise<ApiResponse<PaymentMethod>> {
@@ -563,32 +470,13 @@ export interface AnalyticsData {
 
 export const adminService = {
   async getStats(): Promise<AdminStats | null> {
-    try {
-      const response = await api.get<AdminStats>('/admin/stats');
-      return response.data || null;
-    } catch (error) {
-      console.warn('API unavailable for admin stats');
-      return {
-        total_revenue: 45250,
-        revenue_change: 12.5,
-        total_orders: 156,
-        orders_change: 8.2,
-        total_products: mockProducts.length,
-        products_change: 3.1,
-        total_customers: 892,
-        customers_change: 15.3,
-      };
-    }
+    const response = await api.get<AdminStats>('/admin/stats');
+    return response.data || null;
   },
 
   async getOrders(): Promise<Order[]> {
-    try {
-      const response = await api.get<Order[]>('/admin/orders');
-      return response.data || [];
-    } catch (error) {
-      console.warn('API unavailable for admin orders');
-      return [];
-    }
+    const response = await api.get<Order[]>('/admin/orders');
+    return response.data || [];
   },
 
   async updateOrderStatus(orderId: number, status: Order['status']): Promise<ApiResponse<Order>> {
@@ -596,82 +484,56 @@ export const adminService = {
   },
 
   async getProducts(): Promise<{ products: AdminProduct[]; stats: AdminProductStats }> {
-    try {
-      const response = await api.get<{ products: any[]; stats: AdminProductStats }>('/admin/products');
-      if (response.data) {
-        const mediaBaseUrl = getMediaBaseUrl();
-        const products = (response.data.products || response.data as any).map((p: any) => ({
-          id: String(p.id),
-          name: p.name,
-          category: p.category?.name || p.category || '',
-          price: Number(p.price),
-          stock: p.stock ?? p.quantity ?? 0,
-          status: p.stock === 0 ? 'out_of_stock' : p.stock <= 10 ? 'low_stock' : 'active',
-          image: p.image ? (p.image.startsWith('http') ? p.image : `${mediaBaseUrl}${p.image}`) : '/placeholder.svg',
-        }));
-        const stats = response.data.stats || {
-          total: products.length,
-          in_stock: products.filter((p: AdminProduct) => p.status === 'active').length,
-          low_stock: products.filter((p: AdminProduct) => p.status === 'low_stock').length,
-          out_of_stock: products.filter((p: AdminProduct) => p.status === 'out_of_stock').length,
-        };
-        return { products, stats };
-      }
-    } catch (error) {
-      console.warn('API unavailable for admin products');
+    const response = await api.get<{ products: any[]; stats: AdminProductStats }>('/admin/products');
+    if (response.data) {
+      const mediaBaseUrl = getMediaBaseUrl();
+      const products = (response.data.products || response.data as any).map((p: any) => ({
+        id: String(p.id),
+        name: p.name,
+        category: p.category?.name || p.category || '',
+        price: Number(p.price),
+        stock: p.stock ?? p.quantity ?? 0,
+        status: p.stock === 0 ? 'out_of_stock' : p.stock <= 10 ? 'low_stock' : 'active',
+        image: p.image ? (p.image.startsWith('http') ? p.image : `${mediaBaseUrl}${p.image}`) : '/placeholder.svg',
+      }));
+      const stats = response.data.stats || {
+        total: products.length,
+        in_stock: products.filter((p: AdminProduct) => p.status === 'active').length,
+        low_stock: products.filter((p: AdminProduct) => p.status === 'low_stock').length,
+        out_of_stock: products.filter((p: AdminProduct) => p.status === 'out_of_stock').length,
+      };
+      return { products, stats };
     }
-    // Fallback mock
-    logMockFallback('admin products');
-    const fallbackProducts: AdminProduct[] = mockProducts.map(p => ({
-      id: String(p.id),
-      name: p.name,
-      category: p.category,
-      price: p.price,
-      stock: Math.floor(Math.random() * 200),
-      status: 'active' as const,
-      image: p.images?.[0] || '/placeholder.svg',
-    }));
     return {
-      products: fallbackProducts,
-      stats: { total: fallbackProducts.length, in_stock: fallbackProducts.length, low_stock: 0, out_of_stock: 0 },
+      products: [],
+      stats: { total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0 },
     };
   },
 
   async getCustomers(): Promise<{ customers: AdminCustomer[]; stats: AdminCustomerStats }> {
-    try {
-      const response = await api.get<{ customers: any[]; stats: AdminCustomerStats }>('/admin/customers');
-      if (response.data) {
-        const customers = (response.data.customers || response.data as any).map((c: any) => ({
-          id: String(c.id),
-          name: c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim(),
-          email: c.email,
-          orders: c.orders_count ?? c.orders ?? 0,
-          spent: Number(c.total_spent ?? c.spent ?? 0),
-          joined: c.date_joined || c.created_at || c.joined || '',
-          status: c.status || 'active',
-          avatar: c.avatar || null,
-        }));
-        const stats = response.data.stats || {
-          total_customers: customers.length,
-          new_this_month: 0,
-          avg_orders: 0,
-          avg_value: 0,
-        };
-        return { customers, stats };
-      }
-    } catch (error) {
-      console.warn('API unavailable for admin customers');
+    const response = await api.get<{ customers: any[]; stats: AdminCustomerStats }>('/admin/customers');
+    if (response.data) {
+      const customers = (response.data.customers || response.data as any).map((c: any) => ({
+        id: String(c.id),
+        name: c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+        email: c.email,
+        orders: c.orders_count ?? c.orders ?? 0,
+        spent: Number(c.total_spent ?? c.spent ?? 0),
+        joined: c.date_joined || c.created_at || c.joined || '',
+        status: c.status || 'active',
+        avatar: c.avatar || null,
+      }));
+      const stats = response.data.stats || {
+        total_customers: customers.length,
+        new_this_month: 0,
+        avg_orders: 0,
+        avg_value: 0,
+      };
+      return { customers, stats };
     }
-    // Fallback mock
-    logMockFallback('admin customers');
-    const fallbackCustomers: AdminCustomer[] = [
-      { id: "1", name: "John Doe", email: "john@example.com", orders: 12, spent: 1299.99, joined: "2023-06-15", status: "active", avatar: null },
-      { id: "2", name: "Jane Smith", email: "jane@example.com", orders: 8, spent: 849.50, joined: "2023-08-22", status: "active", avatar: null },
-      { id: "3", name: "Alice Brown", email: "alice@example.com", orders: 15, spent: 2150.00, joined: "2023-03-05", status: "vip", avatar: null },
-    ];
     return {
-      customers: fallbackCustomers,
-      stats: { total_customers: fallbackCustomers.length, new_this_month: 1, avg_orders: 11.7, avg_value: 1433 },
+      customers: [],
+      stats: { total_customers: 0, new_this_month: 0, avg_orders: 0, avg_value: 0 },
     };
   },
 
@@ -688,47 +550,38 @@ export const adminService = {
   },
 
   async getProductDetail(id: string): Promise<Product | null> {
-    try {
-      const response = await api.get<any>(`/products/${id}`);
-      if (response.data) {
-        const p = response.data.product || response.data;
-        const mediaBaseUrl = getMediaBaseUrl();
-        const resolveImage = (img: string) => img.startsWith('http') ? img : `${mediaBaseUrl}${img}`;
-        return {
-          id: String(p.id),
-          name: p.name,
-          slug: p.slug,
-          price: Number(p.price),
-          original_price: p.original_price ? Number(p.original_price) : undefined,
-          originalPrice: p.original_price ? Number(p.original_price) : undefined,
-          description: p.description || '',
-          category: p.category?.name || p.category || '',
-          category_id: p.category_id || p.category?.id,
-          images: (p.images || []).map((img: any) => typeof img === 'string' ? resolveImage(img) : resolveImage(img.image)),
-          colors: p.colors || [],
-          sizes: (p.sizes || []).map((s: any) => typeof s === 'string' ? { name: s, inStock: true } : { name: s.name, inStock: s.in_stock ?? s.inStock ?? true }),
-          inStock: p.in_stock ?? p.inStock ?? true,
-          featured: p.featured ?? false,
-          rating: p.rating,
-          review_count: p.review_count,
-          reviewCount: p.review_count,
-          _rawImages: (p.images || []).map((img: any) => typeof img === 'object' ? img : { image: img }),
-        } as Product & { _rawImages: any[] };
-      }
-    } catch (error) {
-      console.warn('API unavailable for product detail');
+    const response = await api.get<any>(`/products/${id}`);
+    if (response.data) {
+      const p = response.data.product || response.data;
+      const mediaBaseUrl = getMediaBaseUrl();
+      const resolveImage = (img: string) => img.startsWith('http') ? img : `${mediaBaseUrl}${img}`;
+      return {
+        id: String(p.id),
+        name: p.name,
+        slug: p.slug,
+        price: Number(p.price),
+        original_price: p.original_price ? Number(p.original_price) : undefined,
+        originalPrice: p.original_price ? Number(p.original_price) : undefined,
+        description: p.description || '',
+        category: p.category?.name || p.category || '',
+        category_id: p.category_id || p.category?.id,
+        images: (p.images || []).map((img: any) => typeof img === 'string' ? resolveImage(img) : resolveImage(img.image)),
+        colors: p.colors || [],
+        sizes: (p.sizes || []).map((s: any) => typeof s === 'string' ? { name: s, inStock: true } : { name: s.name, inStock: s.in_stock ?? s.inStock ?? true }),
+        inStock: p.in_stock ?? p.inStock ?? true,
+        featured: p.featured ?? false,
+        rating: p.rating,
+        review_count: p.review_count,
+        reviewCount: p.review_count,
+        _rawImages: (p.images || []).map((img: any) => typeof img === 'object' ? img : { image: img }),
+      } as Product & { _rawImages: any[] };
     }
     return null;
   },
 
   async getAnalytics(): Promise<AnalyticsData | null> {
-    try {
-      const response = await api.get<AnalyticsData>('/admin/analytics');
-      return response.data || null;
-    } catch (error) {
-      console.warn('API unavailable for admin analytics');
-      return null;
-    }
+    const response = await api.get<AnalyticsData>('/admin/analytics');
+    return response.data || null;
   },
 
   async createCategory(data: { name: string; slug: string; description?: string; image?: string }): Promise<ApiResponse<any>> {

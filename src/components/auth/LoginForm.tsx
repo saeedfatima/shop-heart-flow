@@ -40,11 +40,8 @@ export function LoginForm({ onForgotPassword, onSwitchToSignUp, redirectTo }: Lo
       if (redirectTo) {
         navigate(redirectTo);
       } else {
-        const storedUser = localStorage.getItem('mockAuthUser');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          navigate(user.role === 'admin' ? '/admin' : '/dashboard');
-        }
+        const userRole = result.user?.role || 'user';
+        navigate(userRole === 'admin' ? '/admin' : '/dashboard');
       }
     } else {
       toast({
