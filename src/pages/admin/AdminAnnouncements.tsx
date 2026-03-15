@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Megaphone, Send, Mail, Bell, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { adminService } from "@/lib/apiServices";
 
 const AdminAnnouncements = () => {
   const { toast } = useToast();
@@ -23,40 +24,57 @@ const AdminAnnouncements = () => {
   const [notifType, setNotifType] = useState("info");
   const [isSendingNotif, setIsSendingNotif] = useState(false);
 
-  const handleSendEmail = (e: React.FormEvent) => {
+  const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailSubject || !emailBody) return;
     
     setIsSendingEmail(true);
     
-    // Simulate backend API call delay
-    setTimeout(() => {
-      setIsSendingEmail(false);
+    const { error } = await adminService.broadcastChannel({
+      title: emailSubject,
+      message: emailBody,
+      type: 'info',
+      send_email: true
+    });
+    
+    setIsSendingEmail(false);
+    
+    if (error) {
+      toast({ title: "Broadcast Failed", description: error, variant: "destructive" });
+    } else {
       setEmailSubject("");
       setEmailBody("");
       toast({
-        title: "Email Broadcast Queued",
-        description: "Your message is being sent to all active users.",
+        title: "Email Broadcast Sent",
+        description: "Your message has been dispatched to all active users.",
       });
-    }, 1500);
+    }
   };
 
-  const handleSendNotification = (e: React.FormEvent) => {
+  const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notifTitle || !notifMessage) return;
 
     setIsSendingNotif(true);
 
-    // Simulate backend API call delay
-    setTimeout(() => {
-      setIsSendingNotif(false);
+    const { error } = await adminService.broadcastChannel({
+      title: notifTitle,
+      message: notifMessage,
+      type: notifType
+    });
+
+    setIsSendingNotif(false);
+
+    if (error) {
+      toast({ title: "Publishing Failed", description: error, variant: "destructive" });
+    } else {
       setNotifTitle("");
       setNotifMessage("");
       toast({
         title: "Site Notification Published",
         description: "The alert has been pushed to the notification feeds of all users.",
       });
-    }, 1500);
+    }
   };
 
   return (

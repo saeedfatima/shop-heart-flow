@@ -62,6 +62,14 @@ $routes = [
     'PUT /addresses/{id}' => 'endpoints/addresses/update.php',
     'DELETE /addresses/{id}/delete' => 'endpoints/addresses/delete.php',
     
+    // Support Tickets
+    'GET /tickets' => 'endpoints/tickets/list.php',
+    'GET /tickets/{id}' => 'endpoints/tickets/detail.php',
+    'POST /tickets/create' => 'endpoints/tickets/create.php',
+    
+    // Notifications
+    'GET /notifications' => 'endpoints/notifications/list.php',
+    
     // Wishlist
     'GET /wishlist' => 'endpoints/wishlist/list.php',
     'POST /wishlist/add' => 'endpoints/wishlist/add.php',
@@ -84,7 +92,10 @@ $routes = [
     'GET /admin/analytics' => 'endpoints/admin/analytics.php',
     'POST /admin/categories/create' => 'endpoints/admin/create-category.php',
     'PUT /admin/categories/{id}' => 'endpoints/admin/update-category.php',
-    'DELETE /admin/categories/{id}' => 'endpoints/admin/delete-category.php',
+    'DELETE /admin/categories/{id}/delete' => 'endpoints/admin/delete-category.php',
+    'GET /admin/tickets' => 'endpoints/admin/tickets.php',
+    'POST /admin/tickets/{id}/reply' => 'endpoints/admin/reply-ticket.php',
+    'POST /admin/broadcast' => 'endpoints/admin/broadcast.php',
 ];
 
 // Match route

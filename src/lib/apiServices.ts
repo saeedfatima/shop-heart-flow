@@ -186,6 +186,37 @@ export interface AdminStats {
   customers_change: number;
 }
 
+export interface TicketReply {
+  id: number;
+  message: string;
+  is_admin_reply: boolean;
+  created_at: string;
+}
+
+export interface Ticket {
+  id: number;
+  ticket_number: string;
+  subject: string;
+  category: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'open' | 'resolved' | 'closed';
+  message: string;
+  replies?: TicketReply[];
+  created_at: string;
+  updated_at: string;
+  user_name?: string;
+  user_email?: string;
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  is_read: boolean;
+  created_at: string;
+}
+
 // ============================================
 // NORMALIZERS - Convert API response to frontend format
 // ============================================
@@ -593,6 +624,51 @@ export const adminService = {
   },
 
   async deleteCategory(id: number): Promise<ApiResponse<any>> {
-    return api.delete<any>(`/admin/categories/${id}`);
+    return api.delete<any>(`/categories/${id}/delete`);
+  },
+
+  async getTickets(): Promise<Ticket[]> {
+    const response = await api.get<Ticket[]>('/admin/tickets');
+    return response.data || [];
+  },
+
+  async replyTicket(id: number, message: string): Promise<ApiResponse<any>> {
+    return api.post<any>(`/admin/tickets/${id}/reply`, { message });
+  },
+
+  async broadcastChannel(data: { title: string; message: string; type: string; send_email?: boolean }): Promise<ApiResponse<any>> {
+    return api.post<any>('/admin/broadcast', data);
+  },
+};
+
+// ============================================
+// SUPPORT & NOTIFICATION SERVICES
+// ============================================
+
+export const supportService = {
+  async getAll(): Promise<Ticket[]> {
+    const response = await api.get<Ticket[]>('/tickets');
+    return response.data || [];
+  },
+
+  async getById(id: number): Promise<Ticket | null> {
+    const response = await api.get<Ticket>(`/tickets/${id}`);
+    return response.data || null;
+  },
+
+  async create(data: { subject: string; category: string; message: string; priority?: string }): Promise<ApiResponse<any>> {
+    return api.post<any>('/tickets/create', data);
+  },
+};
+
+export const notificationService = {
+  async getAll(): Promise<Notification[]> {
+    const response = await api.get<Notification[]>('/notifications');
+    return response.data || [];
+  },
+
+  async markAsRead(id: number): Promise<void> {
+    // Optional: Add endpoint if needed
+    // await api.put(`/notifications/${id}/read`, {});
   },
 };

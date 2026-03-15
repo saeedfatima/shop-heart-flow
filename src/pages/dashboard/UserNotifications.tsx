@@ -1,45 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, Info, CheckCircle2, AlertTriangle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-// Mock data until Backend API is ready
-const mockNotifications = [
-  {
-    id: 1,
-    title: "Order Shipped",
-    message: "Your order #ORD-2024-001 has been shipped and is on its way to you.",
-    type: "success",
-    date: "2 hours ago",
-    read: false,
-  },
-  {
-    id: 2,
-    title: "Support Ticket Updated",
-    message: "An admin has responded to your ticket #TKT-001. Please check the Help & Support page.",
-    type: "info",
-    date: "1 day ago",
-    read: true,
-  },
-  {
-    id: 3,
-    title: "Payment Failed",
-    message: "Your recent payment for order #ORD-2024-002 was declined. Please update your payment method.",
-    type: "error",
-    date: "2 days ago",
-    read: true,
-  },
-  {
-    id: 4,
-    title: "Flash Sale Starts Tomorrow!",
-    message: "Get up to 50% off on selected items starting tomorrow at 10 AM.",
-    type: "warning",
-    date: "3 days ago",
-    read: true,
-  }
-];
+import { notificationService, Notification } from "@/lib/apiServices";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -56,17 +21,32 @@ const getNotificationIcon = (type: string) => {
 };
 
 const UserNotifications = () => {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const markAsRead = (id: number) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    setIsLoading(true);
+    const data = await notificationService.getAll();
+    setNotifications(data);
+    setIsLoading(false);
+  };
+
+  const markAsRead = async (id: number) => {
+    // Optimistic update locally
+    setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+    await notificationService.markAsRead(id);
   };
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+    // Add mark all endpoint call if implemented
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <motion.div
@@ -96,7 +76,12 @@ const UserNotifications = () => {
       </div>
 
       <div className="space-y-4">
-        {notifications.length === 0 ? (
+        {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-muted-foreground">Fetching alerts...</p>
+            </div>
+        ) : notifications.length === 0 ? (
           <Card className="p-8 text-center text-muted-foreground">
             <Bell className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <p className="text-lg font-medium">No notifications yet</p>
@@ -106,7 +91,7 @@ const UserNotifications = () => {
           notifications.map((notification) => (
             <Card 
               key={notification.id} 
-              className={`transition-colors ${!notification.read ? 'border-primary/50 bg-primary/5' : ''}`}
+              className={`transition-colors ${!notification.is_read ? 'border-primary/50 bg-primary/5' : ''}`}
             >
               <CardContent className="p-4 sm:p-6 flex gap-4">
                 <div className="shrink-0 mt-1">
@@ -114,18 +99,18 @@ const UserNotifications = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
-                    <h3 className={`text-base font-semibold ${!notification.read ? 'text-foreground' : 'text-foreground/80'}`}>
+                    <h3 className={`text-base font-semibold ${!notification.is_read ? 'text-foreground' : 'text-foreground/80'}`}>
                       {notification.title}
                     </h3>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {notification.date}
+                      {new Date(notification.created_at).toLocaleString()}
                     </span>
                   </div>
-                  <p className={`text-sm ${!notification.read ? 'text-foreground/90' : 'text-muted-foreground'}`}>
+                  <p className={`text-sm ${!notification.is_read ? 'text-foreground/90' : 'text-muted-foreground'}`}>
                     {notification.message}
                   </p>
                   
-                  {!notification.read && (
+                  {!notification.is_read && (
                     <Button 
                       variant="ghost" 
                       size="sm" 

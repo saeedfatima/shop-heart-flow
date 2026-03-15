@@ -8,46 +8,49 @@ import { Label } from "@/components/ui/label";
 import { HelpCircle, MessageSquare, Mail, Phone, Clock, FileText, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock data until Backend API is ready
-const mockTickets = [
-  {
-    id: "TKT-001",
-    subject: "Where is my order?",
-    status: "open",
-    category: "order",
-    date: "1 day ago",
-  },
-  {
-    id: "TKT-002",
-    subject: "Received wrong item",
-    status: "resolved",
-    category: "return",
-    date: "1 week ago",
-  }
-];
+import { useEffect } from "react";
+import { supportService, Ticket } from "@/lib/apiServices";
 
 const UserHelp = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
   const [formData, setFormData] = useState({
     subject: "",
     category: "general",
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadTickets();
+  }, []);
+
+  const loadTickets = async () => {
+    setIsLoadingTickets(true);
+    const data = await supportService.getAll();
+    setTickets(data);
+    setIsLoadingTickets(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API Call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast({
-        title: "Ticket Submitted Successfully",
-        description: "Our support team will review your complaint and get back to you shortly.",
-      });
-      setFormData({ subject: "", category: "general", message: "" });
-    }, 1500);
+    const { error } = await supportService.create(formData);
+    
+    setIsSubmitting(false);
+    
+    if (error) {
+        toast({ title: "Submission Failed", description: error, variant: "destructive" });
+    } else {
+        toast({
+            title: "Ticket Submitted Successfully",
+            description: "Our support team will review your complaint and get back to you shortly.",
+        });
+        setFormData({ subject: "", category: "general", message: "" });
+        loadTickets(); // Refresh list
+    }
   };
 
   return (
@@ -147,25 +150,36 @@ const UserHelp = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockTickets.map((ticket) => (
-                  <div key={ticket.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/50 rounded-lg border">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm text-primary">{ticket.id}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          ticket.status === 'open' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                        }`}>
-                          {ticket.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <p className="font-medium text-foreground">{ticket.subject}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Submitted {ticket.date} • Category: {ticket.category}</p>
+                {isLoadingTickets ? (
+                    <div className="flex flex-col items-center justify-center py-8 gap-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
+                        <p className="text-sm text-muted-foreground">Loading tickets...</p>
                     </div>
-                    <Button variant="ghost" size="sm" className="mt-4 sm:mt-0">
-                      View details
-                    </Button>
-                  </div>
-                ))}
+                ) : tickets.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                        <p>You haven't submitted any tickets yet.</p>
+                    </div>
+                ) : (
+                    tickets.map((ticket) => (
+                        <div key={ticket.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/50 rounded-lg border">
+                            <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-sm text-primary">{ticket.ticket_number}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                ticket.status === 'open' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                }`}>
+                                {ticket.status.toUpperCase()}
+                                </span>
+                            </div>
+                            <p className="font-medium text-foreground">{ticket.subject}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Submitted {new Date(ticket.created_at).toLocaleDateString()} • Category: {ticket.category}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" className="mt-4 sm:mt-0">
+                            View details
+                            </Button>
+                        </div>
+                    ))
+                )}
               </div>
             </CardContent>
           </Card>
