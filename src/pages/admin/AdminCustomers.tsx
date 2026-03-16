@@ -190,6 +190,7 @@ const AdminCustomers = () => {
           ) : filteredCustomers.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">No customers found</div>
           ) : (
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -245,6 +246,7 @@ const AdminCustomers = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

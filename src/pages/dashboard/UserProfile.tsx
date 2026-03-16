@@ -11,7 +11,7 @@ import { Camera, Mail, Phone, User, Lock, Shield, Upload, X, Loader2, MapPin, Ca
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { addressService, Address } from "@/lib/apiServices";
+import { addressService, Address, AddressInput } from "@/lib/apiServices";
 import {
   Dialog,
   DialogContent,
@@ -118,15 +118,19 @@ const UserProfile = () => {
   };
 
   const handleSaveAddress = async () => {
-    const payload = {
-      address_type: addressForm.label.toLowerCase() === 'work' ? 'work' : 'home',
-      ...addressForm
+    const addressType: 'home' | 'work' | 'other' = 
+      addressForm.label.toLowerCase() === 'work' ? 'work' : 
+      addressForm.label.toLowerCase() === 'other' ? 'other' : 'home';
+    
+    const payload: AddressInput = {
+      ...addressForm,
+      address_type: addressType,
     };
 
     try {
       if (editingAddress) {
         await addressService.update(editingAddress.id, payload);
-        setAddresses(prev => prev.map(a => a.id === editingAddress.id ? { ...a, ...payload } : a));
+        setAddresses(prev => prev.map(a => a.id === editingAddress.id ? { ...a, ...payload } as Address : a));
       } else {
         const { data } = await addressService.create(payload);
         if (data) setAddresses(prev => [...prev, data]);

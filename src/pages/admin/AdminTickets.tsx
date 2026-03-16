@@ -57,7 +57,7 @@ const AdminTickets = () => {
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = 
       ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(ticket.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.user_name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === "all" || ticket.status === filterStatus;
@@ -314,7 +314,7 @@ const AdminTickets = () => {
                                 <span className="text-xs text-muted-foreground">{new Date(reply.created_at).toLocaleString()}</span>
                             </div>
                             <div className={`p-3 rounded-2xl text-sm ${
-                                reply.sender === 'admin' 
+                                reply.is_admin_reply 
                                   ? 'bg-primary text-primary-foreground rounded-tr-none' 
                                   : 'bg-muted rounded-tl-none border shadow-sm'
                             }`}>

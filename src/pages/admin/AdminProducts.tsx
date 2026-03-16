@@ -271,6 +271,7 @@ const AdminProducts = () => {
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">No products found</div>
           ) : (
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -331,6 +332,7 @@ const AdminProducts = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

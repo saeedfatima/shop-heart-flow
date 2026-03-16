@@ -190,6 +190,7 @@ export interface TicketReply {
   id: number;
   message: string;
   is_admin_reply: boolean;
+  sender?: string;
   created_at: string;
 }
 
@@ -454,6 +455,7 @@ export const paymentMethodService = {
 export interface AdminProduct {
   id: string;
   name: string;
+  description?: string;
   category: string;
   price: number;
   stock: number;
