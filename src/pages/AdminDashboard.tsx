@@ -342,11 +342,11 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       <AdminSidebar />
       
       <main className="flex-1 overflow-y-auto">
-        <div className="p-6 lg:p-8">
+        <div className="p-4 md:p-6 lg:p-8">
           <Routes>
             <Route index element={<DashboardOverview />} />
             <Route path="orders" element={<AdminOrders />} />
