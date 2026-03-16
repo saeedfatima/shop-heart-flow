@@ -318,6 +318,7 @@ const DashboardOverview = () => {
                       ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
