@@ -246,6 +246,7 @@ const AdminCustomers = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
