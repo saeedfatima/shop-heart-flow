@@ -336,6 +336,7 @@ const AdminOrders = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
