@@ -314,7 +314,7 @@ const AdminTickets = () => {
                                 <span className="text-xs text-muted-foreground">{new Date(reply.created_at).toLocaleString()}</span>
                             </div>
                             <div className={`p-3 rounded-2xl text-sm ${
-                                reply.sender === 'admin' 
+                                reply.is_admin_reply 
                                   ? 'bg-primary text-primary-foreground rounded-tr-none' 
                                   : 'bg-muted rounded-tl-none border shadow-sm'
                             }`}>

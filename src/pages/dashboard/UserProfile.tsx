@@ -118,15 +118,19 @@ const UserProfile = () => {
   };
 
   const handleSaveAddress = async () => {
-    const payload = {
-      address_type: addressForm.label.toLowerCase() === 'work' ? 'work' : 'home',
-      ...addressForm
+    const addressType: 'home' | 'work' | 'other' = 
+      addressForm.label.toLowerCase() === 'work' ? 'work' : 
+      addressForm.label.toLowerCase() === 'other' ? 'other' : 'home';
+    
+    const payload: AddressInput = {
+      ...addressForm,
+      address_type: addressType,
     };
 
     try {
       if (editingAddress) {
         await addressService.update(editingAddress.id, payload);
-        setAddresses(prev => prev.map(a => a.id === editingAddress.id ? { ...a, ...payload } : a));
+        setAddresses(prev => prev.map(a => a.id === editingAddress.id ? { ...a, ...payload } as Address : a));
       } else {
         const { data } = await addressService.create(payload);
         if (data) setAddresses(prev => [...prev, data]);

@@ -190,6 +190,7 @@ export interface TicketReply {
   id: number;
   message: string;
   is_admin_reply: boolean;
+  sender?: string;
   created_at: string;
 }
 
