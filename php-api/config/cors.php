@@ -1,47 +1,53 @@
 <?php
 /**
  * CORS Configuration
- * Update allowed origins for production
+ * Supports local dev (XAMPP/WAMP/MAMP), Lovable preview/published domains,
+ * and standard PHP/MySQL hosting deployments.
  */
 
-// Allowed origins - add your domains here
 $allowed_origins = [
-    'http://localhost:5173',      // Vite dev server
     'http://localhost:3000',
+    'http://localhost:5173',
     'http://localhost:8080',
+    'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8080',
     'https://shop-heart-flow.lovable.app',
-    // Add your production domain:
-    // 'https://yourdomain.com',
-    // 'https://www.yourdomain.com',
 ];
 
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-// Check exact match first
-$origin_allowed = in_array($origin, $allowed_origins);
+function isAllowedOrigin(string $origin, array $allowedOrigins): bool {
+    if ($origin === '') {
+        return false;
+    }
 
-// Also allow any lovable.app subdomain
-if (!$origin_allowed && !empty($origin) && preg_match('/^https:\/\/.*\.lovable\.app$/', $origin)) {
-    $origin_allowed = true;
+    if (in_array($origin, $allowedOrigins, true)) {
+        return true;
+    }
+
+    return (bool) preg_match('/^https:\/\/.*\.lovable\.app$/', $origin)
+        || (bool) preg_match('/^https:\/\/.*\.lovableproject\.com$/', $origin);
 }
 
-if ($origin_allowed && !empty($origin)) {
-    header("Access-Control-Allow-Origin: $origin");
-} else if (empty($origin)) {
-    // Same-origin or non-browser requests
-    header("Access-Control-Allow-Origin: *");
+$originAllowed = isAllowedOrigin($origin, $allowed_origins);
+
+if ($originAllowed) {
+    header("Access-Control-Allow-Origin: {$origin}");
+    header('Access-Control-Allow-Credentials: true');
+    header('Vary: Origin');
+} elseif ($origin === '') {
+    // Allow curl/Postman/local direct requests without an Origin header.
+    header('Access-Control-Allow-Origin: *');
 }
 
-header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Max-Age: 86400");
-header("Content-Type: application/json; charset=UTF-8");
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, x-auth-token, x-client-info, apikey');
+header('Access-Control-Expose-Headers: Content-Type, Content-Length');
+header('Access-Control-Max-Age: 86400');
+header('Content-Type: application/json; charset=UTF-8');
 
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+    http_response_code(204);
     exit;
 }

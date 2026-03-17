@@ -4,6 +4,19 @@
 RewriteEngine On
 RewriteBase /api/
 
+<IfModule mod_headers.c>
+    SetEnvIfNoCase Origin "^https?://localhost(:[0-9]+)?$" CORS_ALLOW_ORIGIN=$0
+    SetEnvIfNoCase Origin "^https?://127\.0\.0\.1(:[0-9]+)?$" CORS_ALLOW_ORIGIN=$0
+    SetEnvIfNoCase Origin "^https://([a-z0-9-]+\.)?lovable\.app$" CORS_ALLOW_ORIGIN=$0
+    SetEnvIfNoCase Origin "^https://([a-z0-9-]+\.)?lovableproject\.com$" CORS_ALLOW_ORIGIN=$0
+
+    Header always set Access-Control-Allow-Origin "%{CORS_ALLOW_ORIGIN}e" env=CORS_ALLOW_ORIGIN
+    Header always set Access-Control-Allow-Credentials "true" env=CORS_ALLOW_ORIGIN
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin, x-auth-token, x-client-info, apikey"
+    Header always set Vary "Origin" env=CORS_ALLOW_ORIGIN
+</IfModule>
+
 # Handle CORS preflight
 RewriteCond %{REQUEST_METHOD} OPTIONS
 RewriteRule ^(.*)$ index.php [QSA,L]
