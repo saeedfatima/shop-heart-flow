@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Eye, Edit, Package, Truck, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react";
+import { getMediaBaseUrl } from "@/lib/apiConfig";
 import { formatNaira } from "@/lib/currency";
 import { adminService, Order } from "@/lib/apiServices";
 import { toast } from "@/hooks/use-toast";
@@ -34,6 +35,7 @@ const getStatusColor = (status: string) => {
 };
 
 const AdminOrders = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [orders, setOrders] = useState<Order[]>([]);
@@ -147,7 +149,7 @@ const AdminOrders = () => {
                 <div className="flex gap-3 items-center">
                    {item.product.image && (
                      <img 
-                       src={item.product.image.startsWith('http') ? item.product.image : `http://localhost/api${item.product.image}`} 
+                       src={item.product.image.startsWith('http') ? item.product.image : `${mediaBaseUrl}${item.product.image}`} 
                        alt={item.product.name}
                        className="w-10 h-10 object-cover rounded" 
                      />

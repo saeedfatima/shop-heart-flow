@@ -1,10 +1,11 @@
 // src/lib/api.ts
 // PHP API Client
+import { getApiBaseUrl } from './apiConfig';
 
 // API Base URL - Configure this to point to your PHP server
 // Local: http://localhost/api (XAMPP/WAMP/MAMP)
 // Production: https://yourdomain.com/api
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = getApiBaseUrl();
 
 // Log API configuration on load (helps with debugging)
 if (API_BASE_URL) {
@@ -13,6 +14,7 @@ if (API_BASE_URL) {
   console.warn('[PHP API] VITE_API_URL not configured - API calls will fail, using mock data');
   console.info('[PHP API] To connect to PHP backend, set VITE_API_URL in .env file');
   console.info('[PHP API] Example: VITE_API_URL=http://localhost/api');
+  console.info('[PHP API] Fallback local API URL:', API_BASE_URL || 'not available');
 }
 
 interface TokenPair {

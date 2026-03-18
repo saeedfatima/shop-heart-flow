@@ -11,6 +11,7 @@ import { Camera, Mail, Phone, User, Lock, Shield, Upload, X, Loader2, MapPin, Ca
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { getMediaBaseUrl } from "@/lib/apiConfig";
 import { addressService, Address, AddressInput } from "@/lib/apiServices";
 import {
   Dialog,
@@ -21,9 +22,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
-
 const UserProfile = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const { user, updateProfile, refreshUser } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +43,7 @@ const UserProfile = () => {
   });
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${API_BASE_URL}${user.avatar}`) : null
+    user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${mediaBaseUrl}${user.avatar}`) : null
   );
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);

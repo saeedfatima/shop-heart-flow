@@ -6,12 +6,12 @@ import { CheckCircle2, Package, ArrowRight, Loader2 } from 'lucide-react';
 import OrderStatusTimeline from '@/components/orders/OrderStatusTimeline';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
+import { getMediaBaseUrl } from '@/lib/apiConfig';
 import { orderService, Order } from '@/lib/apiServices';
 import { formatNaira } from '@/lib/currency';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
-
 const OrderConfirmation = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const { orderId } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ const OrderConfirmation = () => {
 
   const getImageUrl = (image?: string) => {
     if (!image) return '/placeholder.svg';
-    return image.startsWith('http') ? image : `${API_BASE_URL}${image}`;
+    return image.startsWith('http') ? image : `${mediaBaseUrl}${image}`;
   };
 
   return (

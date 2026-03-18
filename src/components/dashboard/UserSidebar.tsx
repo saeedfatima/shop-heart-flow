@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { resolveApiAssetUrl } from '@/lib/apiConfig';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -156,7 +157,7 @@ function SidebarContent({ isCollapsed, onNavigate }: { isCollapsed: boolean; onN
           )}
         >
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user?.avatar} />
+            <AvatarImage src={resolveApiAssetUrl(user?.avatar)} />
             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
               {user?.first_name?.[0]}{user?.last_name?.[0]}
             </AvatarFallback>

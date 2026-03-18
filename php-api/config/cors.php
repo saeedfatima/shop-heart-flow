@@ -11,11 +11,27 @@ $allowed_origins = [
     'http://localhost:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
-    'http://127.0.0.1:8080',
+    'https://puretrustgeneralenterpise.com.ng',
     'https://shop-heart-flow.lovable.app',
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+function isLocalNetworkOrigin(string $origin): bool {
+    return (bool) preg_match(
+        '/^https?:\/\/(' .
+        'localhost|' .
+        '127\.0\.0\.1|' .
+        '\[::1\]|' .
+        '10\.\d{1,3}\.\d{1,3}\.\d{1,3}|' .
+        '192\.168\.\d{1,3}\.\d{1,3}|' .
+        '172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|' .
+        '[a-z0-9-]+|' .
+        '[a-z0-9-]+\.local' .
+        ')(:\d+)?$/i',
+        $origin
+    );
+}
 
 function isAllowedOrigin(string $origin, array $allowedOrigins): bool {
     if ($origin === '') {
@@ -23,6 +39,10 @@ function isAllowedOrigin(string $origin, array $allowedOrigins): bool {
     }
 
     if (in_array($origin, $allowedOrigins, true)) {
+        return true;
+    }
+
+    if (isLocalNetworkOrigin($origin)) {
         return true;
     }
 

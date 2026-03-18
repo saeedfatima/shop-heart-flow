@@ -38,6 +38,30 @@ A modern e-commerce platform built with React + Django REST Framework backend.
 
 ## 🛠️ Quick Start
 
+### Local XAMPP + PHP API
+
+If you are using the PHP backend in `php-api` with XAMPP:
+
+```bash
+Copy php-api -> C:\xampp\htdocs\api
+```
+
+Then use:
+
+```env
+VITE_API_URL=http://localhost/api
+```
+
+If you mount the backend under a different XAMPP folder name, point `VITE_API_URL` to that exact path instead, for example `http://localhost/store-api`.
+
+To test from another phone or laptop on the same Wi-Fi, open the frontend with your computer's LAN IP and use that same IP for the API base, for example:
+
+```env
+VITE_API_URL=http://192.168.1.20/api
+```
+
+The frontend now also rewrites `localhost` automatically to the current LAN host when the app is opened from another device, which helps images and API requests keep working during local testing.
+
 ### Frontend Only (Mock Data)
 
 ```bash

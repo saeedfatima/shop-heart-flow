@@ -1,12 +1,7 @@
 // API Services - Typed functions for PHP backend
 // All data comes from the PHP API - no mock fallbacks
-import { api, ApiResponse, ApiUser, isApiConfigured } from './api';
-
-// Get base URL for media files (without /api suffix)
-const getMediaBaseUrl = (): string => {
-  const apiUrl = import.meta.env.VITE_API_URL || '';
-  return apiUrl.replace(/\/api\/?$/, '');
-};
+import { api, ApiResponse } from './api';
+import { getMediaBaseUrl, resolveApiAssetUrl } from './apiConfig';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -554,7 +549,7 @@ export const adminService = {
         spent: Number(c.total_spent ?? c.spent ?? 0),
         joined: c.date_joined || c.created_at || c.joined || '',
         status: c.status || 'active',
-        avatar: c.avatar || null,
+        avatar: resolveApiAssetUrl(c.avatar) || null,
       }));
       const stats = response.data.stats || {
         total_customers: customers.length,

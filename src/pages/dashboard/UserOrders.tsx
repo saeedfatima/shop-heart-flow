@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, Search, Eye, Calendar, Truck, CheckCircle, Clock, XCircle } from "lucide-react";
+import { getMediaBaseUrl } from "@/lib/apiConfig";
 import OrderStatusTimeline from "@/components/orders/OrderStatusTimeline";
 import { formatNaira } from "@/lib/currency";
 import { orderService, Order } from "@/lib/apiServices";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -34,6 +33,7 @@ const getStatusColor = (status: string) => {
 };
 
 const UserOrders = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -155,7 +155,7 @@ const UserOrders = () => {
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center gap-4">
                       <img 
-                        src={item.product.image?.startsWith('http') ? item.product.image : `${API_BASE_URL}${item.product.image}`} 
+                        src={item.product.image?.startsWith('http') ? item.product.image : `${mediaBaseUrl}${item.product.image}`} 
                         alt={item.product.name}
                         className="w-16 h-16 object-cover rounded-md"
                         onError={(e) => {

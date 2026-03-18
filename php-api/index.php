@@ -8,20 +8,18 @@ require_once __DIR__ . '/config/cors.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/jwt.php';
 require_once __DIR__ . '/helpers/response.php';
+require_once __DIR__ . '/helpers/request.php';
 
 // Parse request
-$requestUri = $_SERVER['REQUEST_URI'];
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 
-// Remove base path and query string
-$basePath = '/api';
-$path = parse_url($requestUri, PHP_URL_PATH);
-$path = preg_replace("#^$basePath#", '', $path);
-$path = rtrim($path, '/');
+// Remove the mounted script directory so routes work from /api or any custom folder path.
+$path = getApiRequestPath();
 
 // Route definitions
 $routes = [
     // Health check
+    'GET /' => 'endpoints/health.php',
     'GET /health' => 'endpoints/health.php',
     
     // Auth

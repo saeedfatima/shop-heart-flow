@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { resolveApiAssetUrl } from '@/lib/apiConfig';
 
 export interface User {
   id: string;
@@ -41,6 +42,11 @@ interface SignupData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const normalizeUser = (userData: User): User => ({
+  ...userData,
+  avatar: resolveApiAssetUrl(userData.avatar) || userData.avatar,
+});
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // PHP returns user object directly, or wrapped in {success, user}
         const userData = data.user || data;
         if (userData?.id) {
-          setUser(userData);
+          setUser(normalizeUser(userData));
         }
       }
     } catch {
@@ -84,8 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await api.login(email, password);
       
       if (data?.success) {
-        setUser(data.user);
-        return { success: true, message: data.message, user: data.user };
+        const normalizedUser = normalizeUser(data.user);
+        setUser(normalizedUser);
+        return { success: true, message: data.message, user: normalizedUser };
       }
       
       // Check if it's a network error
@@ -110,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (data?.success) {
-        setUser(data.user);
+        setUser(normalizeUser(data.user));
         return { success: true, message: data.message };
       }
       
@@ -139,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // PHP may return {success, user} or {success, message}
       const userData = data.user || data;
       if (userData?.id) {
-        setUser(userData);
+        setUser(normalizeUser(userData));
       }
       return { success: true, message: data.message || 'Profile updated' };
     }

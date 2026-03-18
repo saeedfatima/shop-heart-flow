@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { DialogFooter } from "@/components/ui/dialog";
 import { ImagePlus, X, Loader2, Plus } from "lucide-react";
 import { adminService, categoryService, Category, Product } from "@/lib/apiServices";
+import { getMediaBaseUrl } from "@/lib/apiConfig";
 import { useToast } from "@/hooks/use-toast";
 
 interface ColorInput {
@@ -194,7 +195,7 @@ const AdminProductForm = ({ onSuccess, onCancel, editProduct }: AdminProductForm
     }
   };
 
-  const mediaBaseUrl = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || '';
+  const mediaBaseUrl = getMediaBaseUrl();
 
   return (
     <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">

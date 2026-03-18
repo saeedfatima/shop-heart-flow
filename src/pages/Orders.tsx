@@ -7,10 +7,9 @@ import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
+import { getMediaBaseUrl } from '@/lib/apiConfig';
 import { orderService, Order } from '@/lib/apiServices';
 import { formatNaira } from '@/lib/currency';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
@@ -22,6 +21,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 };
 
 const Orders = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const { isAuthenticated } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ const Orders = () => {
 
   const getImageUrl = (image?: string) => {
     if (!image) return '/placeholder.svg';
-    return image.startsWith('http') ? image : `${API_BASE_URL}${image}`;
+    return image.startsWith('http') ? image : `${mediaBaseUrl}${image}`;
   };
 
   if (!isAuthenticated) {

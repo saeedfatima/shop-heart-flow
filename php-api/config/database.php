@@ -7,9 +7,9 @@
 class Database {
     // Local Development (XAMPP)
     private $host = 'localhost';
-    private $db_name = 'shaheeda_ecommerce';
-    private $username = 'root';
-    private $password = '';
+    private $db_name = 'zypdeliv_shaheeda_db';
+    private $username = 'zypdeliv_shaheeda_user';
+    private $password = 'shaheeda1()';
     
     // Production (cPanel) - Uncomment and update for deployment
     // private $host = 'localhost';

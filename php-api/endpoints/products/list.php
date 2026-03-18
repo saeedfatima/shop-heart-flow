@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../helpers/request.php';
 
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $perPage = 12;
@@ -121,7 +122,7 @@ try {
     
     // Pagination
     $totalPages = ceil($total / $perPage);
-    $baseUrl = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . "://{$_SERVER['HTTP_HOST']}/api/products";
+    $baseUrl = getApiBaseUrl() . '/products';
     
     jsonResponse([
         'count' => $total,

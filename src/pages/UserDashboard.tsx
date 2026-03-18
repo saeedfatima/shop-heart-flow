@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { useAuth } from "@/context/AuthContext";
+import { getMediaBaseUrl } from "@/lib/apiConfig";
 import { formatNaira } from "@/lib/currency";
 import { orderService, Order } from "@/lib/apiServices";
 import { 
@@ -26,8 +27,6 @@ import UserSettings from "@/pages/dashboard/UserSettings";
 import UserNotifications from "@/pages/dashboard/UserNotifications";
 import UserHelp from "@/pages/dashboard/UserHelp";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost';
-
 const getStatusColor = (status: string) => {
   switch (status) {
     case "delivered": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
@@ -38,6 +37,7 @@ const getStatusColor = (status: string) => {
 };
 
 const DashboardOverview = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const { user } = useAuth();
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ const DashboardOverview = () => {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${API_BASE_URL}${user.avatar}`) : undefined} />
+            <AvatarImage src={user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${mediaBaseUrl}${user.avatar}`) : undefined} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xl">
               {user?.first_name?.[0]}{user?.last_name?.[0]}
             </AvatarFallback>

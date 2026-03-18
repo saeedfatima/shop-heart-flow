@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Search, Plus, Edit, Trash2, Eye, Loader2 } from "lucide-react";
 import AdminProductForm from "@/components/admin/AdminProductForm";
 import { useToast } from "@/hooks/use-toast";
+import { getMediaBaseUrl } from "@/lib/apiConfig";
 import { formatNaira } from "@/lib/currency";
 import { adminService, AdminProduct, AdminProductStats, Product } from "@/lib/apiServices";
 
@@ -23,6 +24,7 @@ const getStatusColor = (status: string) => {
 };
 
 const AdminProducts = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -114,7 +116,7 @@ const AdminProducts = () => {
         <div className="grid md:grid-cols-2 gap-6 py-4">
           <div className="aspect-[4/5] overflow-hidden rounded-lg bg-secondary flex items-center justify-center">
             <img 
-              src={product.image?.startsWith('http') ? product.image : `http://localhost/api${product.image}`} 
+              src={product.image?.startsWith('http') ? product.image : `${mediaBaseUrl}${product.image}`} 
               alt={product.name}
               className="h-full w-full object-cover"
               onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}

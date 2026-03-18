@@ -12,6 +12,7 @@ import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { useAuth } from "@/context/AuthContext";
 import { formatNaira, formatAdminCurrency } from "@/lib/currency";
 import { adminService, Order } from "@/lib/apiServices";
+import { getMediaBaseUrl } from "@/lib/apiConfig";
 import { 
   Package, 
   ShoppingCart, 
@@ -103,6 +104,7 @@ const StatCard = ({ title, value, change, icon: Icon, showDual = false, nairaVal
 };
 
 const DashboardOverview = () => {
+  const mediaBaseUrl = getMediaBaseUrl();
   const [searchTerm, setSearchTerm] = useState("");
   const { user } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -184,7 +186,7 @@ const DashboardOverview = () => {
                 <div className="flex gap-3 items-center">
                    {item.product.image && (
                      <img 
-                       src={item.product.image.startsWith('http') ? item.product.image : `http://localhost/api${item.product.image}`} 
+                       src={item.product.image.startsWith('http') ? item.product.image : `${mediaBaseUrl}${item.product.image}`} 
                        alt={item.product.name}
                        className="w-10 h-10 object-cover rounded" 
                      />
