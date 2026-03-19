@@ -22,7 +22,7 @@ const buildBrowserApiUrl = (path = DEFAULT_API_PATH): string => {
     return "";
   }
 
-  return `${location.protocol}//${location.hostname}${path.startsWith("/") ? path : `/${path}`}`;
+  return `${location.origin}${path.startsWith("/") ? path : `/${path}`}`;
 };
 
 export const getApiBaseUrl = (): string => {
@@ -33,11 +33,15 @@ export const getApiBaseUrl = (): string => {
     return trimTrailingSlash(buildBrowserApiUrl());
   }
 
+  if (!/^https?:\/\//i.test(configuredValue)) {
+    return trimTrailingSlash(buildBrowserApiUrl(configuredValue));
+  }
+
   try {
     const configuredUrl = new URL(configuredValue);
 
     if (location && isLoopbackHost(configuredUrl.hostname) && !isLoopbackHost(location.hostname)) {
-      configuredUrl.hostname = location.hostname;
+      configuredUrl.host = location.host;
     }
 
     return trimTrailingSlash(configuredUrl.toString());

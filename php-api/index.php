@@ -27,6 +27,7 @@ $routes = [
     'POST /auth/register' => 'endpoints/auth/register.php',
     'POST /auth/logout' => 'endpoints/auth/logout.php',
     'POST /auth/token/refresh' => 'endpoints/auth/refresh.php',
+    'GET /auth/debug' => 'endpoints/auth/debug.php',
     'GET /auth/user' => 'endpoints/auth/user.php',
     'PUT /auth/user' => 'endpoints/auth/update-profile.php',
     'PUT /auth/update-profile' => 'endpoints/auth/update-profile.php',

@@ -11,6 +11,10 @@ $allowed_origins = [
     'http://localhost:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
+    'http://brightcarepharmcy.com',
+    'http://www.brightcarepharmcy.com',
+    'https://brightcarepharmcy.com',
+    'https://www.brightcarepharmcy.com',
     'https://puretrustgeneralenterpise.com.ng',
     'https://shop-heart-flow.lovable.app',
 ];

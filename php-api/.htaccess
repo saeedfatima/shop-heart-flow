@@ -3,6 +3,13 @@
 
 RewriteEngine On
 
+# Preserve Authorization header for Apache/FastCGI/cPanel setups so PHP can read Bearer tokens
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+SetEnvIfNoCase Authorization "(.+)" HTTP_AUTHORIZATION=$1
+
 # Handle CORS preflight
 RewriteCond %{REQUEST_METHOD} OPTIONS
 RewriteRule ^(.*)$ index.php [QSA,L]

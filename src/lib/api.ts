@@ -77,6 +77,10 @@ class ApiClient {
     return localStorage.getItem('accessToken');
   }
 
+  private getRefreshToken(): string | null {
+    return localStorage.getItem('refreshToken');
+  }
+
   private setTokens(tokens: TokenPair): void {
     localStorage.setItem('accessToken', tokens.access);
     localStorage.setItem('refreshToken', tokens.refresh);
@@ -87,8 +91,21 @@ class ApiClient {
     localStorage.removeItem('refreshToken');
   }
 
+  private applyAuthHeaders(headers: HeadersInit, token: string | null): void {
+    const mutableHeaders = headers as Record<string, string>;
+
+    if (token) {
+      mutableHeaders['Authorization'] = `Bearer ${token}`;
+      mutableHeaders['x-auth-token'] = token;
+      return;
+    }
+
+    delete mutableHeaders['Authorization'];
+    delete mutableHeaders['x-auth-token'];
+  }
+
   private async refreshAccessToken(): Promise<boolean> {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = this.getRefreshToken();
 
     if (!refreshToken) {
       return false;
@@ -145,9 +162,7 @@ class ApiClient {
     };
 
     const token = this.getAccessToken();
-    if (token) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-    }
+    this.applyAuthHeaders(headers, token);
 
     try {
       console.log('[PHP API] Request:', options.method || 'GET', endpoint);
@@ -158,14 +173,14 @@ class ApiClient {
         signal: AbortSignal.timeout(15000),
       });
 
-      // If 401, try to refresh token and retry
-      if (response.status === 401 && token) {
+      // If auth fails, try refresh once and retry.
+      if (response.status === 401 && this.getRefreshToken()) {
         console.log('[PHP API] Token expired, attempting refresh...');
         const refreshed = await this.refreshAccessToken();
 
         if (refreshed) {
-          (headers as Record<string, string>)['Authorization'] =
-            `Bearer ${this.getAccessToken()}`;
+          const refreshedAccessToken = this.getAccessToken();
+          this.applyAuthHeaders(headers, refreshedAccessToken);
           response = await fetch(url, { ...options, headers });
         }
       }
@@ -286,9 +301,7 @@ class ApiClient {
 
     const headers: HeadersInit = {};
     const token = this.getAccessToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    this.applyAuthHeaders(headers, token);
 
     try {
       let response = await fetch(url, {
@@ -297,12 +310,13 @@ class ApiClient {
         body: formData,
       });
 
-      // If 401, try to refresh token and retry
-      if (response.status === 401 && token) {
+      // If auth fails, try refresh once and retry.
+      if (response.status === 401 && this.getRefreshToken()) {
         const refreshed = await this.refreshAccessToken();
 
         if (refreshed) {
-          headers['Authorization'] = `Bearer ${this.getAccessToken()}`;
+          const refreshedAccessToken = this.getAccessToken();
+          this.applyAuthHeaders(headers, refreshedAccessToken);
           response = await fetch(url, {
             method,
             headers,
